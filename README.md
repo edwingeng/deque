@@ -3,12 +3,12 @@ Deque is a fast double-ended queue.
 
 # Benchmark
 ```
-Benchmark_PushBack/deque         	20000000	        77.2 ns/op
-Benchmark_PushBack/list          	 5000000	       280 ns/op
-Benchmark_PushFront/deque        	30000000	        71.2 ns/op
-Benchmark_PushFront/list         	 5000000	       276 ns/op
-Benchmark_Random/deque           	50000000	        32.3 ns/op
-Benchmark_Random/list            	30000000	       146 ns/op
+Benchmark_PushBack/deque         	20000000	        75.3 ns/op	      24 B/op	       1 allocs/op
+Benchmark_PushBack/list          	 5000000	       280 ns/op	      56 B/op	       2 allocs/op
+Benchmark_PushFront/deque        	30000000	        68.5 ns/op	      24 B/op	       1 allocs/op
+Benchmark_PushFront/list         	 5000000	       279 ns/op	      56 B/op	       2 allocs/op
+Benchmark_Random/deque           	50000000	        28.8 ns/op	       3 B/op	       0 allocs/op
+Benchmark_Random/list            	30000000	        51.0 ns/op	      27 B/op	       0 allocs/op
 ```
 
 # Interface
