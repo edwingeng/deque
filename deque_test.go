@@ -4,6 +4,7 @@ import (
 	"math"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func always(dq Deque, t *testing.T) {
@@ -11,6 +12,18 @@ func always(dq Deque, t *testing.T) {
 	dq1 := dq.(*deque)
 	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed) {
 		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed)")
+	}
+	if n := dq1.Len(); n <= chunkSize {
+		if len(dq1.chunks) > 2 {
+			t.Fatal("len(dq1.chunks) > 2")
+		}
+	} else {
+		if len(dq1.chunks) < n/chunkSize {
+			t.Fatal("len(dq1.chunks) < n/chunkSize")
+		}
+		if len(dq1.chunks) > n/chunkSize+2 {
+			t.Fatal("len(dq1.chunks) > n/chunkSize+2")
+		}
 	}
 }
 
@@ -299,6 +312,7 @@ func TestDeque_Front(t *testing.T) {
 }
 
 func TestDeque_Random(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
 	dq := NewDeque()
 	var n int
 	for i := 0; i < 100000; i++ {
