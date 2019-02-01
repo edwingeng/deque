@@ -10,6 +10,12 @@ import (
 func always(dq Deque, t *testing.T) {
 	t.Helper()
 	dq1 := dq.(*deque)
+	if dq1.sFree < 0 || dq1.sFree > len(dq1.bed) {
+		t.Fatal("dq1.sFree < 0 || dq1.sFree > len(dq1.bed)")
+	}
+	if dq1.eFree < 0 || dq1.eFree > len(dq1.bed) {
+		t.Fatal("dq1.eFree < 0 || dq1.eFree > len(dq1.bed)")
+	}
 	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed) {
 		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed)")
 	}
@@ -23,6 +29,14 @@ func always(dq Deque, t *testing.T) {
 		}
 		if len(dq1.chunks) > n/chunkSize+2 {
 			t.Fatal("len(dq1.chunks) > n/chunkSize+2")
+		}
+	}
+	for _, c := range dq1.chunks {
+		if c.s < 0 || c.s > chunkSize {
+			t.Fatal("c.s < 0 || c.s > chunkSize")
+		}
+		if c.e < 0 || c.e > chunkSize {
+			t.Fatal("c.e < 0 || c.e > chunkSize")
 		}
 	}
 }
