@@ -16,17 +16,15 @@ type chunk struct {
 func (c *chunk) back() interface{} {
 	if c.e > c.s {
 		return c.data[c.e-1]
-	} else {
-		return nil
 	}
+	return nil
 }
 
 func (c *chunk) front() interface{} {
 	if c.e > c.s {
 		return c.data[c.s]
-	} else {
-		return nil
 	}
+	return nil
 }
 
 type deque struct {
@@ -236,7 +234,6 @@ func (dq *deque) Len() int {
 func NumChunksAllocated(dq Deque) int64 {
 	if x, ok := dq.(*deque); ok && x != nil {
 		return atomic.LoadInt64(&x.numChunksAllocated)
-	} else {
-		return -1
 	}
+	return -1
 }
