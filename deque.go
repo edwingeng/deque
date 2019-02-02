@@ -39,6 +39,7 @@ type deque struct {
 	numChunksAllocated int64
 }
 
+// NewDeque creates a new Deque.
 func NewDeque() Deque {
 	dq := &deque{
 		bed:   make([]*chunk, 64),
@@ -231,6 +232,7 @@ func (dq *deque) Len() int {
 	}
 }
 
+// NumChunksAllocated returns the number of chunks allocated by the specified Deque.
 func NumChunksAllocated(dq Deque) int64 {
 	if x, ok := dq.(*deque); ok && x != nil {
 		return atomic.LoadInt64(&x.numChunksAllocated)
