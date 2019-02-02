@@ -7,13 +7,13 @@ import (
 )
 
 func Benchmark_PushBack(b *testing.B) {
-	b.Run("deque", func(b *testing.B) {
+	b.Run("Deque", func(b *testing.B) {
 		dq := NewDeque()
 		for i := 0; i < b.N; i++ {
 			dq.PushBack(i)
 		}
 	})
-	b.Run("list", func(b *testing.B) {
+	b.Run("list.List", func(b *testing.B) {
 		lst := list.New()
 		for i := 0; i < b.N; i++ {
 			lst.PushBack(i)
@@ -22,13 +22,13 @@ func Benchmark_PushBack(b *testing.B) {
 }
 
 func Benchmark_PushFront(b *testing.B) {
-	b.Run("deque", func(b *testing.B) {
+	b.Run("Deque", func(b *testing.B) {
 		dq := NewDeque()
 		for i := 0; i < b.N; i++ {
 			dq.PushFront(i)
 		}
 	})
-	b.Run("list", func(b *testing.B) {
+	b.Run("list.List", func(b *testing.B) {
 		lst := list.New()
 		for i := 0; i < b.N; i++ {
 			lst.PushFront(i)
@@ -43,7 +43,7 @@ func Benchmark_Random(b *testing.B) {
 		a[i] = rand.Int()
 	}
 
-	b.Run("deque", func(b *testing.B) {
+	b.Run("Deque", func(b *testing.B) {
 		dq := NewDeque()
 		for i := 0; i < b.N; i++ {
 			switch a[i%na] % 4 {
@@ -58,7 +58,7 @@ func Benchmark_Random(b *testing.B) {
 			}
 		}
 	})
-	b.Run("list", func(b *testing.B) {
+	b.Run("list.List", func(b *testing.B) {
 		lst := list.New()
 		for i := 0; i < b.N; i++ {
 			switch a[i%na] % 4 {
