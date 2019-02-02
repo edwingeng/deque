@@ -1,5 +1,5 @@
 # Overview
-Deque is a fast double-ended queue.
+Deque is a highly optimized double-ended queue.
 
 [![Build Status](https://travis-ci.com/edwingeng/deque.svg?branch=master)](https://travis-ci.com/edwingeng/deque)
 
