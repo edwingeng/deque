@@ -2,14 +2,7 @@ package deque
 
 import (
 	"sync"
-)
-
-var (
-	chunkPool = sync.Pool{
-		New: func() interface{} {
-			return &chunk{}
-		},
-	}
+	"sync/atomic"
 )
 
 const chunkSize = 255
@@ -41,6 +34,9 @@ type deque struct {
 	bed    []*chunk
 	sFree  int
 	eFree  int
+
+	chunkPool          *sync.Pool
+	numChunksAllocated int64
 }
 
 func NewDeque() Deque {
@@ -49,7 +45,15 @@ func NewDeque() Deque {
 		sFree: 32,
 		eFree: 32,
 	}
+	dq.chunkPool = &sync.Pool{
+		New: dq.newChunk,
+	}
 	return dq
+}
+
+func (dq *deque) newChunk() interface{} {
+	atomic.AddInt64(&dq.numChunksAllocated, 1)
+	return &chunk{}
 }
 
 func (dq *deque) realloc() {
@@ -70,7 +74,7 @@ func (dq *deque) expandEnd() {
 	if dq.eFree == 0 {
 		dq.realloc()
 	}
-	c := chunkPool.Get().(*chunk)
+	c := dq.chunkPool.Get().(*chunk)
 	c.s, c.e = 0, 0
 	dq.eFree--
 	newEnd := len(dq.bed) - dq.eFree
@@ -82,7 +86,7 @@ func (dq *deque) expandStart() {
 	if dq.sFree == 0 {
 		dq.realloc()
 	}
-	c := chunkPool.Get().(*chunk)
+	c := dq.chunkPool.Get().(*chunk)
 	c.s, c.e = chunkSize, chunkSize
 	dq.sFree--
 	dq.bed[dq.sFree] = c
@@ -98,7 +102,7 @@ func (dq *deque) shrinkEnd() {
 	newEnd := n - dq.eFree - 1
 	c := dq.bed[newEnd]
 	dq.bed[newEnd] = nil
-	chunkPool.Put(c)
+	dq.chunkPool.Put(c)
 	dq.eFree++
 	dq.chunks = dq.bed[dq.sFree:newEnd]
 	if dq.sFree+dq.eFree == n {
@@ -115,7 +119,7 @@ func (dq *deque) shrinkStart() {
 	}
 	c := dq.bed[dq.sFree]
 	dq.bed[dq.sFree] = nil
-	chunkPool.Put(c)
+	dq.chunkPool.Put(c)
 	dq.sFree++
 	newEnd := len(dq.bed) - dq.eFree
 	dq.chunks = dq.bed[dq.sFree:newEnd]
@@ -224,5 +228,13 @@ func (dq *deque) Len() int {
 		return dq.chunks[0].e - dq.chunks[0].s
 	default:
 		return chunkSize - dq.chunks[0].s + dq.chunks[n-1].e + (n-2)*chunkSize
+	}
+}
+
+func NumChunksAllocated(dq Deque) int64 {
+	if x, ok := dq.(*deque); ok && x != nil {
+		return atomic.LoadInt64(&x.numChunksAllocated)
+	} else {
+		return -1
 	}
 }
