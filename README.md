@@ -31,16 +31,5 @@ for !dq.Empty() {
 // 300
 ```
 
-# Interface
-``` go
-type Deque interface {
-    PushBack(v interface{})
-    PushFront(v interface{})
-    PopBack() interface{}
-    PopFront() interface{}
-    Back() interface{}
-    Front() interface{}
-    Empty() bool
-    Len() int
-}
-```
+# Documentation
+[https://godoc.org/github.com/edwingeng/deque](https://godoc.org/github.com/edwingeng/deque)
