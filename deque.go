@@ -1,7 +1,6 @@
 package deque
 
 import (
-	"sync"
 	"sync/atomic"
 )
 
@@ -33,26 +32,24 @@ type deque struct {
 	sFree  int
 	eFree  int
 
-	chunkPool          *sync.Pool
-	numChunksAllocated int64
+	chunkPool *chunkPool
 }
+
+var (
+	sharedChunkPool = newChunkPool(func() interface{} {
+		return &chunk{}
+	})
+)
 
 // NewDeque creates a new Deque.
 func NewDeque() Deque {
 	dq := &deque{
-		bed:   make([]*chunk, 64),
-		sFree: 32,
-		eFree: 32,
-	}
-	dq.chunkPool = &sync.Pool{
-		New: dq.newChunk,
+		bed:       make([]*chunk, 64),
+		sFree:     32,
+		eFree:     32,
+		chunkPool: sharedChunkPool,
 	}
 	return dq
-}
-
-func (dq *deque) newChunk() interface{} {
-	atomic.AddInt64(&dq.numChunksAllocated, 1)
-	return &chunk{}
 }
 
 func (dq *deque) realloc() {
@@ -230,10 +227,7 @@ func (dq *deque) Len() int {
 	}
 }
 
-// NumChunksAllocated returns the number of chunks allocated by the specified Deque.
-func NumChunksAllocated(dq Deque) int64 {
-	if x, ok := dq.(*deque); ok && x != nil {
-		return atomic.LoadInt64(&x.numChunksAllocated)
-	}
-	return -1
+// NumChunksAllocated returns the number of chunks allocated by now.
+func NumChunksAllocated() int64 {
+	return atomic.LoadInt64(&sharedChunkPool.numChunksAllocated)
 }
