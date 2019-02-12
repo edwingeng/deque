@@ -10,14 +10,14 @@ import (
 func always(dq Deque, t *testing.T) {
 	t.Helper()
 	dq1 := dq.(*deque)
-	if dq1.sFree < 0 || dq1.sFree > len(dq1.bed) {
-		t.Fatal("dq1.sFree < 0 || dq1.sFree > len(dq1.bed)")
+	if dq1.sFree < 0 || dq1.sFree > len(dq1.chunkBed) {
+		t.Fatal("dq1.sFree < 0 || dq1.sFree > len(dq1.chunkBed)")
 	}
-	if dq1.eFree < 0 || dq1.eFree > len(dq1.bed) {
-		t.Fatal("dq1.eFree < 0 || dq1.eFree > len(dq1.bed)")
+	if dq1.eFree < 0 || dq1.eFree > len(dq1.chunkBed) {
+		t.Fatal("dq1.eFree < 0 || dq1.eFree > len(dq1.chunkBed)")
 	}
-	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed) {
-		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.bed)")
+	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.chunkBed) {
+		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.chunkBed)")
 	}
 	if n := dq1.Len(); n <= chunkSize {
 		if len(dq1.chunks) > 2 {
@@ -91,8 +91,8 @@ func TestDeque_realloc(t *testing.T) {
 			dq.realloc()
 			always(dq, t)
 			n := 64 * int(math.Pow(2, float64(i+1)))
-			if len(dq.bed) != n {
-				t.Fatal("len(dq.bed) != n")
+			if len(dq.chunkBed) != n {
+				t.Fatal("len(dq.chunkBed) != n")
 			}
 			if len(dq.chunks) != numChunks {
 				t.Fatal("len(dq.chunks) != numChunks")
@@ -153,8 +153,8 @@ func TestDeque_expandStart(t *testing.T) {
 
 func TestDeque_shrinkEnd(t *testing.T) {
 	dq := NewDeque().(*deque)
-	for i := 0; i < len(dq.bed); i++ {
-		dq.bed[i] = &chunk{}
+	for i := 0; i < len(dq.chunkBed); i++ {
+		dq.chunkBed[i] = &chunk{}
 	}
 	dq.eFree -= 10
 	sf := dq.sFree
@@ -172,22 +172,22 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	}
 	b := 0
 	idx := 0
-	for i := 0; i < len(dq.bed); i++ {
-		if dq.bed[i] != nil {
+	for i := 0; i < len(dq.chunkBed); i++ {
+		if dq.chunkBed[i] != nil {
 			b++
 		} else {
 			idx = i
 		}
 	}
-	if b != len(dq.bed)-1 {
-		t.Fatal("b != len(dq.bed)-1")
+	if b != len(dq.chunkBed)-1 {
+		t.Fatal("b != len(dq.chunkBed)-1")
 	}
-	if idx != len(dq.bed)-ef-1 {
-		t.Fatal("idx != len(dq.bed)-ef-1")
+	if idx != len(dq.chunkBed)-ef-1 {
+		t.Fatal("idx != len(dq.chunkBed)-ef-1")
 	}
 
 	dq.sFree = 60
-	dq.eFree = len(dq.bed) - dq.sFree - 1
+	dq.eFree = len(dq.chunkBed) - dq.sFree - 1
 	dq.shrinkEnd()
 	always(dq, t)
 	if dq.sFree != 32 {
@@ -200,8 +200,8 @@ func TestDeque_shrinkEnd(t *testing.T) {
 
 func TestDeque_shrinkStart(t *testing.T) {
 	dq := NewDeque().(*deque)
-	for i := 0; i < len(dq.bed); i++ {
-		dq.bed[i] = &chunk{}
+	for i := 0; i < len(dq.chunkBed); i++ {
+		dq.chunkBed[i] = &chunk{}
 	}
 	dq.eFree -= 10
 	sf := dq.sFree
@@ -219,22 +219,22 @@ func TestDeque_shrinkStart(t *testing.T) {
 	}
 	b := 0
 	idx := 0
-	for i := 0; i < len(dq.bed); i++ {
-		if dq.bed[i] != nil {
+	for i := 0; i < len(dq.chunkBed); i++ {
+		if dq.chunkBed[i] != nil {
 			b++
 		} else {
 			idx = i
 		}
 	}
-	if b != len(dq.bed)-1 {
-		t.Fatal("b != len(dq.bed)-1")
+	if b != len(dq.chunkBed)-1 {
+		t.Fatal("b != len(dq.chunkBed)-1")
 	}
 	if idx != sf {
 		t.Fatal("idx != sf")
 	}
 
 	dq.sFree = 60
-	dq.eFree = len(dq.bed) - dq.sFree - 1
+	dq.eFree = len(dq.chunkBed) - dq.sFree - 1
 	dq.shrinkEnd()
 	always(dq, t)
 	if dq.sFree != 32 {

@@ -27,10 +27,10 @@ func (c *chunk) front() interface{} {
 }
 
 type deque struct {
-	chunks []*chunk
-	bed    []*chunk
-	sFree  int
-	eFree  int
+	chunks   []*chunk
+	chunkBed []*chunk
+	sFree    int
+	eFree    int
 
 	chunkPool *chunkPool
 }
@@ -44,7 +44,7 @@ var (
 // NewDeque creates a new Deque.
 func NewDeque() Deque {
 	dq := &deque{
-		bed:       make([]*chunk, 64),
+		chunkBed:  make([]*chunk, 64),
 		sFree:     32,
 		eFree:     32,
 		chunkPool: sharedChunkPool,
@@ -53,7 +53,7 @@ func NewDeque() Deque {
 }
 
 func (dq *deque) realloc() {
-	newBedLen := len(dq.bed) * 2
+	newBedLen := len(dq.chunkBed) * 2
 	newBed := make([]*chunk, newBedLen)
 	n := len(dq.chunks)
 	dq.sFree = newBedLen/2 - n/2
@@ -62,7 +62,7 @@ func (dq *deque) realloc() {
 	for i := 0; i < n; i++ {
 		newChunks[i] = dq.chunks[i]
 	}
-	dq.bed = newBed
+	dq.chunkBed = newBed
 	dq.chunks = newChunks
 }
 
@@ -73,9 +73,9 @@ func (dq *deque) expandEnd() {
 	c := dq.chunkPool.Get().(*chunk)
 	c.s, c.e = 0, 0
 	dq.eFree--
-	newEnd := len(dq.bed) - dq.eFree
-	dq.bed[newEnd-1] = c
-	dq.chunks = dq.bed[dq.sFree:newEnd]
+	newEnd := len(dq.chunkBed) - dq.eFree
+	dq.chunkBed[newEnd-1] = c
+	dq.chunks = dq.chunkBed[dq.sFree:newEnd]
 }
 
 func (dq *deque) expandStart() {
@@ -85,22 +85,22 @@ func (dq *deque) expandStart() {
 	c := dq.chunkPool.Get().(*chunk)
 	c.s, c.e = chunkSize, chunkSize
 	dq.sFree--
-	dq.bed[dq.sFree] = c
-	newEnd := len(dq.bed) - dq.eFree
-	dq.chunks = dq.bed[dq.sFree:newEnd]
+	dq.chunkBed[dq.sFree] = c
+	newEnd := len(dq.chunkBed) - dq.eFree
+	dq.chunks = dq.chunkBed[dq.sFree:newEnd]
 }
 
 func (dq *deque) shrinkEnd() {
-	n := len(dq.bed)
+	n := len(dq.chunkBed)
 	if dq.sFree+dq.eFree == n {
 		return
 	}
 	newEnd := n - dq.eFree - 1
-	c := dq.bed[newEnd]
-	dq.bed[newEnd] = nil
+	c := dq.chunkBed[newEnd]
+	dq.chunkBed[newEnd] = nil
 	dq.chunkPool.Put(c)
 	dq.eFree++
-	dq.chunks = dq.bed[dq.sFree:newEnd]
+	dq.chunks = dq.chunkBed[dq.sFree:newEnd]
 	if dq.sFree+dq.eFree == n {
 		dq.sFree = n / 2
 		dq.eFree = n - dq.sFree
@@ -109,16 +109,16 @@ func (dq *deque) shrinkEnd() {
 }
 
 func (dq *deque) shrinkStart() {
-	n := len(dq.bed)
+	n := len(dq.chunkBed)
 	if dq.sFree+dq.eFree == n {
 		return
 	}
-	c := dq.bed[dq.sFree]
-	dq.bed[dq.sFree] = nil
+	c := dq.chunkBed[dq.sFree]
+	dq.chunkBed[dq.sFree] = nil
 	dq.chunkPool.Put(c)
 	dq.sFree++
-	newEnd := len(dq.bed) - dq.eFree
-	dq.chunks = dq.bed[dq.sFree:newEnd]
+	newEnd := len(dq.chunkBed) - dq.eFree
+	dq.chunks = dq.chunkBed[dq.sFree:newEnd]
 	if dq.sFree+dq.eFree == n {
 		dq.sFree = n / 2
 		dq.eFree = n - dq.sFree
