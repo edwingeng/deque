@@ -171,6 +171,7 @@ func (dq *deque) PopBack() interface{} {
 	}
 	c.e--
 	r := c.data[c.e]
+	c.data[c.e] = nil
 	if c.e == 0 {
 		dq.shrinkEnd()
 	}
@@ -187,6 +188,7 @@ func (dq *deque) PopFront() interface{} {
 		return nil
 	}
 	r := c.data[c.s]
+	c.data[c.s] = nil
 	c.s++
 	if c.s == chunkSize {
 		dq.shrinkStart()
