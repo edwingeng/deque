@@ -305,6 +305,7 @@ func TestDeque_PopManyBack(t *testing.T) {
 		if dq1.PopManyBack(i) != nil {
 			t.Fatalf("dq1.PopManyBack(%d) should return nil while dq1 is empty", i)
 		}
+		always(dq1, t)
 	}
 
 	dq2 := NewDeque()
@@ -312,9 +313,11 @@ func TestDeque_PopManyBack(t *testing.T) {
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
 		}
+		always(dq2, t)
 		if len(dq2.PopManyBack(0)) != i {
 			t.Fatalf("dq1.PopManyBack(0) should return %d values", i)
 		}
+		always(dq2, t)
 	}
 
 	for i := 0; i < 2000; i += 5 {
@@ -323,14 +326,22 @@ func TestDeque_PopManyBack(t *testing.T) {
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
+			always(dq3, t)
 			left := i
-			c := j
-			if left < j {
-				c = left
+			for left > 0 {
+				c := j
+				if left < j {
+					c = left
+				}
+				vals := dq3.PopManyBack(j)
+				if len(vals) != c {
+					t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+				}
+				left -= c
+				always(dq3, t)
 			}
-			vals := dq3.PopManyBack(j)
-			if len(vals) != c {
-				t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+			if dq3.PopManyBack(0) != nil {
+				t.Fatalf("dq3.PopManyBack(0) != nil")
 			}
 		}
 	}
@@ -342,6 +353,7 @@ func TestDeque_PopManyFront(t *testing.T) {
 		if dq1.PopManyFront(i) != nil {
 			t.Fatalf("dq1.PopManyFront(%d) should return nil while dq1 is empty", i)
 		}
+		always(dq1, t)
 	}
 
 	dq2 := NewDeque()
@@ -349,9 +361,11 @@ func TestDeque_PopManyFront(t *testing.T) {
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
 		}
+		always(dq2, t)
 		if len(dq2.PopManyFront(0)) != i {
 			t.Fatalf("dq1.PopManyFront(0) should return %d values", i)
 		}
+		always(dq2, t)
 	}
 
 	for i := 0; i < 2000; i += 5 {
@@ -360,14 +374,22 @@ func TestDeque_PopManyFront(t *testing.T) {
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
+			always(dq3, t)
 			left := i
-			c := j
-			if left < j {
-				c = left
+			for left > 0 {
+				c := j
+				if left < j {
+					c = left
+				}
+				vals := dq3.PopManyFront(j)
+				if len(vals) != c {
+					t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+				}
+				left -= c
+				always(dq3, t)
 			}
-			vals := dq3.PopManyFront(j)
-			if len(vals) != c {
-				t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+			if dq3.PopManyFront(0) != nil {
+				t.Fatalf("dq3.PopManyFront(0) != nil")
 			}
 		}
 	}
