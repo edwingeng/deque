@@ -34,4 +34,6 @@ type Deque interface {
 	Enqueue(v interface{})
 	// Dequeue is an alias of PopFront
 	Dequeue() interface{}
+	// DequeueMany is an alias of PopManyFront
+	DequeueMany(max int) []interface{}
 }

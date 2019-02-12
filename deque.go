@@ -281,6 +281,10 @@ func (dq *deque) Dequeue() interface{} {
 	return dq.PopFront()
 }
 
+func (dq *deque) DequeueMany(max int) []interface{} {
+	return dq.PopManyFront(max)
+}
+
 // NumChunksAllocated returns the number of chunks allocated by now.
 func NumChunksAllocated() int64 {
 	return atomic.LoadInt64(&sharedChunkPool.numChunksAllocated)
