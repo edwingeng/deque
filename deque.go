@@ -178,6 +178,29 @@ func (dq *deque) PopBack() interface{} {
 	return r
 }
 
+func (dq *deque) PopManyBack(max int) []interface{} {
+	n := dq.Len()
+	if n == 0 {
+		return nil
+	}
+	if max > 0 && n > max {
+		n = max
+	}
+	vals := make([]interface{}, n)
+	x := len(dq.chunks) - 1
+	for i := 0; i < n; i++ {
+		c := dq.chunks[x]
+		c.e--
+		vals[i] = c.data[c.e]
+		c.data[c.e] = nil
+		if c.e == 0 {
+			dq.shrinkEnd()
+			x--
+		}
+	}
+	return vals
+}
+
 func (dq *deque) PopFront() interface{} {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -194,6 +217,27 @@ func (dq *deque) PopFront() interface{} {
 		dq.shrinkStart()
 	}
 	return r
+}
+
+func (dq *deque) PopManyFront(max int) []interface{} {
+	n := dq.Len()
+	if n == 0 {
+		return nil
+	}
+	if max > 0 && n > max {
+		n = max
+	}
+	vals := make([]interface{}, n)
+	for i := 0; i < n; i++ {
+		c := dq.chunks[0]
+		vals[i] = c.data[c.s]
+		c.data[c.s] = nil
+		c.s++
+		if c.s == chunkSize {
+			dq.shrinkStart()
+		}
+	}
+	return vals
 }
 
 func (dq *deque) Back() interface{} {

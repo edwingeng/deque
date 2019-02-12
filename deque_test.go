@@ -299,6 +299,80 @@ func TestDeque_PushFront(t *testing.T) {
 	}
 }
 
+func TestDeque_PopManyBack(t *testing.T) {
+	dq1 := NewDeque()
+	for i := -1; i <= 1; i++ {
+		if dq1.PopManyBack(i) != nil {
+			t.Fatalf("dq1.PopManyBack(%d) should return nil while dq1 is empty", i)
+		}
+	}
+
+	dq2 := NewDeque()
+	for i := 0; i < 1000; i += 5 {
+		for j := 0; j < i; j++ {
+			dq2.PushBack(j)
+		}
+		if len(dq2.PopManyBack(0)) != i {
+			t.Fatalf("dq1.PopManyBack(0) should return %d values", i)
+		}
+	}
+
+	for i := 0; i < 2000; i += 5 {
+		for j := 5; j < 600; j += 25 {
+			dq3 := NewDeque()
+			for k := 0; k < i; k++ {
+				dq3.PushBack(k)
+			}
+			left := i
+			c := j
+			if left < j {
+				c = left
+			}
+			vals := dq3.PopManyBack(j)
+			if len(vals) != c {
+				t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+			}
+		}
+	}
+}
+
+func TestDeque_PopManyFront(t *testing.T) {
+	dq1 := NewDeque()
+	for i := -1; i <= 1; i++ {
+		if dq1.PopManyFront(i) != nil {
+			t.Fatalf("dq1.PopManyFront(%d) should return nil while dq1 is empty", i)
+		}
+	}
+
+	dq2 := NewDeque()
+	for i := 0; i < 1000; i += 5 {
+		for j := 0; j < i; j++ {
+			dq2.PushBack(j)
+		}
+		if len(dq2.PopManyFront(0)) != i {
+			t.Fatalf("dq1.PopManyFront(0) should return %d values", i)
+		}
+	}
+
+	for i := 0; i < 2000; i += 5 {
+		for j := 5; j < 600; j += 25 {
+			dq3 := NewDeque()
+			for k := 0; k < i; k++ {
+				dq3.PushBack(k)
+			}
+			left := i
+			c := j
+			if left < j {
+				c = left
+			}
+			vals := dq3.PopManyFront(j)
+			if len(vals) != c {
+				t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+			}
+		}
+	}
+}
+
 func TestDeque_Back(t *testing.T) {
 	dq := NewDeque()
 	if dq.Back() != nil {
