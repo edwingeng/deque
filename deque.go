@@ -227,6 +227,14 @@ func (dq *deque) Len() int {
 	}
 }
 
+func (dq *deque) Enqueue(v interface{}) {
+	dq.PushBack(v)
+}
+
+func (dq *deque) Dequeue() interface{} {
+	return dq.PopFront()
+}
+
 // NumChunksAllocated returns the number of chunks allocated by now.
 func NumChunksAllocated() int64 {
 	return atomic.LoadInt64(&sharedChunkPool.numChunksAllocated)

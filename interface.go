@@ -20,4 +20,9 @@ type Deque interface {
 	Empty() bool
 	// Len returns the number of values in the Deque.
 	Len() int
+
+	// Enqueue is an alias of PushBack
+	Enqueue(v interface{})
+	// Dequeue is an alias of PopFront
+	Dequeue() interface{}
 }
