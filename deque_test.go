@@ -455,7 +455,7 @@ func TestDeque_Random(t *testing.T) {
 func TestDeque_Dump(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	var a []interface{}
-	dq := NewDeque()
+	dq := NewDeque().(*deque)
 	for i := 0; i < 10000; i++ {
 		always(dq, t)
 		switch rand.Int() % 5 {

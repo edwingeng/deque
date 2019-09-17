@@ -37,6 +37,6 @@ type Deque interface {
 	// DequeueMany is an alias of PopManyFront.
 	DequeueMany(max int) []interface{}
 
-	// Dump dumps all of the values in Deque.
-	Dump() []interface{}
+	// Range iterates all of the values in Deque.
+	Range(f func(v interface{}) bool)
 }

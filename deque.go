@@ -302,6 +302,21 @@ func (dq *deque) Dump() []interface{} {
 	return vals
 }
 
+func (dq *deque) Range(f func(v interface{}) bool) {
+	n := dq.Len()
+	if n == 0 {
+		return
+	}
+
+	for _, c := range dq.chunks {
+		for i := c.s; i < c.e; i++ {
+			if !f(c.data[i]) {
+				return
+			}
+		}
+	}
+}
+
 // NumChunksAllocated returns the number of chunks allocated by now.
 func NumChunksAllocated() int64 {
 	return atomic.LoadInt64(&sharedChunkPool.numChunksAllocated)
