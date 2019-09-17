@@ -451,3 +451,38 @@ func TestDeque_Random(t *testing.T) {
 		}
 	}
 }
+
+func TestDeque_Dump(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+	var a []interface{}
+	dq := NewDeque()
+	for i := 0; i < 10000; i++ {
+		always(dq, t)
+		switch rand.Int() % 5 {
+		case 0, 1:
+			dq.PushBack(i)
+			a = append(a, i)
+		case 2:
+			dq.PushFront(i)
+			a = append([]interface{}{i}, a...)
+		case 3:
+			if dq.PopBack() != nil {
+				a = a[:len(a)-1]
+			}
+		case 4:
+			if dq.PopFront() != nil {
+				a = a[1:]
+			}
+		}
+
+		b := dq.Dump()
+		if len(b) != len(a) {
+			t.Fatal("len(b) != len(a)")
+		}
+		for i, v := range a {
+			if b[i] != v {
+				t.Fatalf("b[i] != v. i: %d", i)
+			}
+		}
+	}
+}

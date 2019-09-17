@@ -285,6 +285,23 @@ func (dq *deque) DequeueMany(max int) []interface{} {
 	return dq.PopManyFront(max)
 }
 
+func (dq *deque) Dump() []interface{} {
+	n := dq.Len()
+	if n == 0 {
+		return nil
+	}
+
+	vals := make([]interface{}, n)
+	var idx int
+	for _, c := range dq.chunks {
+		for i := c.s; i < c.e; i++ {
+			vals[idx] = c.data[i]
+			idx++
+		}
+	}
+	return vals
+}
+
 // NumChunksAllocated returns the number of chunks allocated by now.
 func NumChunksAllocated() int64 {
 	return atomic.LoadInt64(&sharedChunkPool.numChunksAllocated)

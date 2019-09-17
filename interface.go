@@ -36,4 +36,7 @@ type Deque interface {
 	Dequeue() interface{}
 	// DequeueMany is an alias of PopManyFront.
 	DequeueMany(max int) []interface{}
+
+	// Dump dumps all of the values in Deque.
+	Dump() []interface{}
 }
