@@ -7,23 +7,23 @@ import (
 const chunkSize = 255
 
 type chunk struct {
-	data [chunkSize]interface{}
+	data [chunkSize]Elem
 	s    int
 	e    int
 }
 
-func (c *chunk) back() interface{} {
+func (c *chunk) back() Elem {
 	if c.e > c.s {
 		return c.data[c.e-1]
 	}
-	return nil
+	return ElemDefValue
 }
 
-func (c *chunk) front() interface{} {
+func (c *chunk) front() Elem {
 	if c.e > c.s {
 		return c.data[c.s]
 	}
-	return nil
+	return ElemDefValue
 }
 
 type deque struct {
@@ -126,7 +126,7 @@ func (dq *deque) shrinkStart() {
 	}
 }
 
-func (dq *deque) PushBack(v interface{}) {
+func (dq *deque) PushBack(v Elem) {
 	var c *chunk
 	n := len(dq.chunks)
 	if n == 0 {
@@ -143,7 +143,7 @@ func (dq *deque) PushBack(v interface{}) {
 	c.e++
 }
 
-func (dq *deque) PushFront(v interface{}) {
+func (dq *deque) PushFront(v Elem) {
 	var c *chunk
 	n := len(dq.chunks)
 	if n == 0 {
@@ -160,25 +160,25 @@ func (dq *deque) PushFront(v interface{}) {
 	c.data[c.s] = v
 }
 
-func (dq *deque) PopBack() interface{} {
+func (dq *deque) PopBack() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return nil
+		return ElemDefValue
 	}
 	c := dq.chunks[n-1]
 	if c.e == c.s {
-		return nil
+		return ElemDefValue
 	}
 	c.e--
 	r := c.data[c.e]
-	c.data[c.e] = nil
+	c.data[c.e] = ElemDefValue
 	if c.e == 0 {
 		dq.shrinkEnd()
 	}
 	return r
 }
 
-func (dq *deque) PopManyBack(max int) []interface{} {
+func (dq *deque) PopManyBack(max int) []Elem {
 	n := dq.Len()
 	if n == 0 {
 		return nil
@@ -186,13 +186,13 @@ func (dq *deque) PopManyBack(max int) []interface{} {
 	if max > 0 && n > max {
 		n = max
 	}
-	vals := make([]interface{}, n)
+	vals := make([]Elem, n)
 	x := len(dq.chunks) - 1
 	for i := 0; i < n; i++ {
 		c := dq.chunks[x]
 		c.e--
 		vals[i] = c.data[c.e]
-		c.data[c.e] = nil
+		c.data[c.e] = ElemDefValue
 		if c.e == 0 {
 			dq.shrinkEnd()
 			x--
@@ -201,17 +201,17 @@ func (dq *deque) PopManyBack(max int) []interface{} {
 	return vals
 }
 
-func (dq *deque) PopFront() interface{} {
+func (dq *deque) PopFront() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return nil
+		return ElemDefValue
 	}
 	c := dq.chunks[0]
 	if c.e == c.s {
-		return nil
+		return ElemDefValue
 	}
 	r := c.data[c.s]
-	c.data[c.s] = nil
+	c.data[c.s] = ElemDefValue
 	c.s++
 	if c.s == chunkSize {
 		dq.shrinkStart()
@@ -219,7 +219,7 @@ func (dq *deque) PopFront() interface{} {
 	return r
 }
 
-func (dq *deque) PopManyFront(max int) []interface{} {
+func (dq *deque) PopManyFront(max int) []Elem {
 	n := dq.Len()
 	if n == 0 {
 		return nil
@@ -227,11 +227,11 @@ func (dq *deque) PopManyFront(max int) []interface{} {
 	if max > 0 && n > max {
 		n = max
 	}
-	vals := make([]interface{}, n)
+	vals := make([]Elem, n)
 	for i := 0; i < n; i++ {
 		c := dq.chunks[0]
 		vals[i] = c.data[c.s]
-		c.data[c.s] = nil
+		c.data[c.s] = ElemDefValue
 		c.s++
 		if c.s == chunkSize {
 			dq.shrinkStart()
@@ -240,18 +240,18 @@ func (dq *deque) PopManyFront(max int) []interface{} {
 	return vals
 }
 
-func (dq *deque) Back() interface{} {
+func (dq *deque) Back() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return nil
+		return ElemDefValue
 	}
 	return dq.chunks[n-1].back()
 }
 
-func (dq *deque) Front() interface{} {
+func (dq *deque) Front() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return nil
+		return ElemDefValue
 	}
 	return dq.chunks[0].front()
 }
@@ -273,25 +273,25 @@ func (dq *deque) Len() int {
 	}
 }
 
-func (dq *deque) Enqueue(v interface{}) {
+func (dq *deque) Enqueue(v Elem) {
 	dq.PushBack(v)
 }
 
-func (dq *deque) Dequeue() interface{} {
+func (dq *deque) Dequeue() Elem {
 	return dq.PopFront()
 }
 
-func (dq *deque) DequeueMany(max int) []interface{} {
+func (dq *deque) DequeueMany(max int) []Elem {
 	return dq.PopManyFront(max)
 }
 
-func (dq *deque) Dump() []interface{} {
+func (dq *deque) Dump() []Elem {
 	n := dq.Len()
 	if n == 0 {
 		return nil
 	}
 
-	vals := make([]interface{}, n)
+	vals := make([]Elem, n)
 	var idx int
 	for _, c := range dq.chunks {
 		for i := c.s; i < c.e; i++ {
@@ -302,7 +302,7 @@ func (dq *deque) Dump() []interface{} {
 	return vals
 }
 
-func (dq *deque) Range(f func(v interface{}) bool) {
+func (dq *deque) Range(f func(v Elem) bool) {
 	n := dq.Len()
 	if n == 0 {
 		return

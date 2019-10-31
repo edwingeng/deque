@@ -454,7 +454,7 @@ func TestDeque_Random(t *testing.T) {
 
 func TestDeque_Dump(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
-	var a []interface{}
+	var a []Elem
 	dq := NewDeque().(*deque)
 	for i := 0; i < 10000; i++ {
 		always(dq, t)
@@ -464,7 +464,7 @@ func TestDeque_Dump(t *testing.T) {
 			a = append(a, i)
 		case 2:
 			dq.PushFront(i)
-			a = append([]interface{}{i}, a...)
+			a = append([]Elem{i}, a...)
 		case 3:
 			if dq.PopBack() != nil {
 				a = a[:len(a)-1]
