@@ -33,13 +33,16 @@ function printUsage() {
 }
 
 if [[ $# -lt 2 ]]; then
-    printUsage "Usage: ./`basename $0` <outputDir> <packageName> [elemType]"
+    printUsage "Usage: ./`basename $0` <outputDir> <packageName> [elemType] [benchmark: 0/1]"
     exit 1
 fi
 
 mkdir -p "$1"
-cp -f {chunkPool.go,deque.go,benchmark_test.go} "$1"
+cp -f {chunkPool.go,deque.go} "$1"
 [[ $? -ne 0 ]] && exit 1
+if [[ "$4" -eq 1 ]]; then
+    cp -f benchmark_test.go "$1"
+fi
 
 perl -pi -e "s/^package deque$/package $2/g" "$1"/*
 [[ $? -ne 0 ]] && exit 1
