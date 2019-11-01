@@ -2,8 +2,6 @@ package deque
 
 type Elem = interface{}
 
-var ElemDefValue Elem = nil
-
 // Deque is a fast double-ended queue.
 type Deque interface {
 	// PushBack adds a new value v at the back of Deque.

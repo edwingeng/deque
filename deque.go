@@ -6,6 +6,8 @@ import (
 
 const chunkSize = 255
 
+var elemDefValue Elem
+
 type chunk struct {
 	data [chunkSize]Elem
 	s    int
@@ -16,14 +18,14 @@ func (c *chunk) back() Elem {
 	if c.e > c.s {
 		return c.data[c.e-1]
 	}
-	return ElemDefValue
+	return elemDefValue
 }
 
 func (c *chunk) front() Elem {
 	if c.e > c.s {
 		return c.data[c.s]
 	}
-	return ElemDefValue
+	return elemDefValue
 }
 
 type deque struct {
@@ -163,15 +165,15 @@ func (dq *deque) PushFront(v Elem) {
 func (dq *deque) PopBack() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return ElemDefValue
+		return elemDefValue
 	}
 	c := dq.chunks[n-1]
 	if c.e == c.s {
-		return ElemDefValue
+		return elemDefValue
 	}
 	c.e--
 	r := c.data[c.e]
-	c.data[c.e] = ElemDefValue
+	c.data[c.e] = elemDefValue
 	if c.e == 0 {
 		dq.shrinkEnd()
 	}
@@ -192,7 +194,7 @@ func (dq *deque) PopManyBack(max int) []Elem {
 		c := dq.chunks[x]
 		c.e--
 		vals[i] = c.data[c.e]
-		c.data[c.e] = ElemDefValue
+		c.data[c.e] = elemDefValue
 		if c.e == 0 {
 			dq.shrinkEnd()
 			x--
@@ -204,14 +206,14 @@ func (dq *deque) PopManyBack(max int) []Elem {
 func (dq *deque) PopFront() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return ElemDefValue
+		return elemDefValue
 	}
 	c := dq.chunks[0]
 	if c.e == c.s {
-		return ElemDefValue
+		return elemDefValue
 	}
 	r := c.data[c.s]
-	c.data[c.s] = ElemDefValue
+	c.data[c.s] = elemDefValue
 	c.s++
 	if c.s == chunkSize {
 		dq.shrinkStart()
@@ -231,7 +233,7 @@ func (dq *deque) PopManyFront(max int) []Elem {
 	for i := 0; i < n; i++ {
 		c := dq.chunks[0]
 		vals[i] = c.data[c.s]
-		c.data[c.s] = ElemDefValue
+		c.data[c.s] = elemDefValue
 		c.s++
 		if c.s == chunkSize {
 			dq.shrinkStart()
@@ -243,7 +245,7 @@ func (dq *deque) PopManyFront(max int) []Elem {
 func (dq *deque) Back() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return ElemDefValue
+		return elemDefValue
 	}
 	return dq.chunks[n-1].back()
 }
@@ -251,7 +253,7 @@ func (dq *deque) Back() Elem {
 func (dq *deque) Front() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
-		return ElemDefValue
+		return elemDefValue
 	}
 	return dq.chunks[0].front()
 }

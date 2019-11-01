@@ -32,8 +32,8 @@ function printUsage() {
     $colorful && tput setaf 7
 }
 
-if [[ $# != 2 ]]; then
-    printUsage "Usage: ./`basename $0` [outputDir] [packageName]"
+if [[ $# -lt 2 ]]; then
+    printUsage "Usage: ./`basename $0` <outputDir> <packageName> [elemType]"
     exit 1
 fi
 
@@ -52,12 +52,14 @@ perl -pi -e "s/func NewDeque\(\) Deque {/func NewDeque() *Deque {/g" "$1"/*
 perl -pi -e "s/dq := &deque{/dq := &Deque{/g" "$1"/*
 [[ $? -ne 0 ]] && exit 1
 
+elemType="$3"
+if [[ "$elemType" == "" ]]; then
+    elemType='interface{}'
+fi
 if ! [[ -f "$1"/elem.go ]]; then
     cat <<EOF> "$1"/elem.go
 package $2
 
-type Elem = interface{}
-
-var ElemDefValue Elem = nil
+type Elem = $elemType
 EOF
 fi
