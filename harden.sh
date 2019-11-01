@@ -38,7 +38,7 @@ if [[ $# -lt 2 ]]; then
 fi
 
 mkdir -p "$1"
-cp -f {chunkPool.go,deque.go} "$1"
+cp -f {chunkPool.go,deque.go,benchmark_test.go} "$1"
 [[ $? -ne 0 ]] && exit 1
 
 perl -pi -e "s/^package deque$/package $2/g" "$1"/*
