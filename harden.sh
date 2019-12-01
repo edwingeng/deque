@@ -63,6 +63,8 @@ if ! [[ -f "$1"/elem.go ]]; then
     cat <<EOF> "$1"/elem.go
 package $2
 
+import _ "github.com/edwingeng/deque"
+
 type Elem = $elemType
 EOF
 fi
