@@ -486,3 +486,32 @@ func TestDeque_Dump(t *testing.T) {
 		}
 	}
 }
+
+func TestDeque_Replace(t *testing.T) {
+	for _, n := range []int{1, 100, chunkSize, chunkSize + 1, chunkSize * 2, 1000} {
+		a := make([]int, n)
+		dq := NewDeque()
+		for i := 0; i < n; i++ {
+			v := rand.Int()
+			a[i] = v
+			dq.PushBack(v)
+		}
+		for i := 0; i < 100; i++ {
+			idx := rand.Intn(n)
+			if dq.Peek(idx).(int) != a[idx] {
+				t.Fatal("dq.Peek(idx).(int) != a[idx]")
+			}
+
+			val := rand.Int()
+			a[idx] = val
+			dq.Replace(idx, val)
+
+			dq.Range(func(i int, v Elem) bool {
+				if a[i] != v.(int) {
+					t.Fatal("a[i] != v.(int)")
+				}
+				return true
+			})
+		}
+	}
+}
