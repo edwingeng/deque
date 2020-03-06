@@ -37,6 +37,11 @@ if [[ $# -lt 2 ]]; then
     exit 1
 fi
 
+if [ "${1:0:1}" != "/" ]; then
+    printError "outputDir must be an absolute directory"
+    exit 1
+fi
+
 mkdir -p "$1"
 cp -f {chunkPool.go,deque.go} "$1"
 [[ $? -ne 0 ]] && exit 1
