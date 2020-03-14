@@ -46,7 +46,7 @@ for i, n := 0, dq.Len(); i < n; i++ {
 
 # Harden the element data type
 ``` bash
-./harden.sh <outputDir> <packageName> [elemType] [benchmark: 0/1]
+./harden.sh <outputDir> <packageName> [elemType]
 ```
 
 # Documentation
