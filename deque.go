@@ -181,29 +181,6 @@ func (dq *deque) PopBack() Elem {
 	return r
 }
 
-func (dq *deque) PopManyBack(max int) []Elem {
-	n := dq.Len()
-	if n == 0 {
-		return nil
-	}
-	if max > 0 && n > max {
-		n = max
-	}
-	vals := make([]Elem, n)
-	x := len(dq.chunks) - 1
-	for i := 0; i < n; i++ {
-		c := dq.chunks[x]
-		c.e--
-		vals[i] = c.data[c.e]
-		c.data[c.e] = elemDefValue
-		if c.e == 0 {
-			dq.shrinkEnd()
-			x--
-		}
-	}
-	return vals
-}
-
 func (dq *deque) PopFront() Elem {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -222,7 +199,7 @@ func (dq *deque) PopFront() Elem {
 	return r
 }
 
-func (dq *deque) PopManyFront(max int) []Elem {
+func (dq *deque) DequeueMany(max int) []Elem {
 	n := dq.Len()
 	if n == 0 {
 		return nil
@@ -282,10 +259,6 @@ func (dq *deque) Enqueue(v Elem) {
 
 func (dq *deque) Dequeue() Elem {
 	return dq.PopFront()
-}
-
-func (dq *deque) DequeueMany(max int) []Elem {
-	return dq.PopManyFront(max)
 }
 
 func (dq *deque) Dump() []Elem {

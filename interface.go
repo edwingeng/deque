@@ -23,20 +23,13 @@ type Deque interface {
 	// Len returns the number of values in Deque.
 	Len() int
 
-	// PopManyBack removes a number of values from the back of Deque and
-	// returns the removed values or nil if the Deque is empty.
-	// If max <= 0, PopManyBack removes and returns all the values in Deque.
-	PopManyBack(max int) []Elem
-	// PopManyFront removes a number of values from the front of Deque and
-	// returns the removed values or nil if the Deque is empty.
-	// If max <= 0, PopManyFront removes and returns all the values in Deque.
-	PopManyFront(max int) []Elem
-
 	// Enqueue is an alias of PushBack.
 	Enqueue(v Elem)
 	// Dequeue is an alias of PopFront.
 	Dequeue() Elem
-	// DequeueMany is an alias of PopManyFront.
+	// DequeueMany removes a number of values from the front of Deque and
+	// returns the removed values or nil if the Deque is empty.
+	// If max <= 0, DequeueMany removes and returns all the values in Deque.
 	DequeueMany(max int) []Elem
 
 	// Range iterates all of the values in Deque.
