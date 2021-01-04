@@ -1,10 +1,13 @@
 package deque
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
+	"reflect"
 	"testing"
 	"time"
+	"unsafe"
 )
 
 func always(dq Deque, t *testing.T) {
@@ -315,7 +318,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 		}
 		always(dq2, t)
 		if len(dq2.DequeueMany(0)) != i {
-			t.Fatalf("dq1.DequeueMany(0) should return %d values", i)
+			t.Fatalf("dq2.DequeueMany(0) should return %d values", i)
 		}
 		always(dq2, t)
 	}
@@ -339,6 +342,79 @@ func TestDeque_DequeueMany(t *testing.T) {
 				}
 				left -= c
 				always(dq3, t)
+			}
+			if dq3.DequeueMany(0) != nil {
+				t.Fatalf("dq3.DequeueMany(0) != nil")
+			}
+		}
+	}
+}
+
+func compareBufs(bufA, bufB []interface{}, suffix string, t *testing.T) {
+	t.Helper()
+	if bufB == nil {
+		return
+	}
+
+	ptrA := (*reflect.SliceHeader)(unsafe.Pointer(&bufA)).Data
+	ptrB := (*reflect.SliceHeader)(unsafe.Pointer(&bufB)).Data
+	if len(bufB) <= cap(bufA) {
+		if ptrB != ptrA {
+			t.Fatal("ptrB != ptrA. " + suffix)
+		}
+	} else {
+		if ptrB == ptrA {
+			t.Fatal("ptrB != ptrA. " + suffix)
+		}
+	}
+}
+
+func TestDeque_DequeueManyWithBuffer(t *testing.T) {
+	dq1 := NewDeque()
+	for i := -1; i <= 1; i++ {
+		if dq1.DequeueManyWithBuffer(i, nil) != nil {
+			t.Fatalf("dq1.DequeueManyWithBuffer(%d, nil) should return nil while dq1 is empty", i)
+		}
+		always(dq1, t)
+	}
+
+	dq2 := NewDeque()
+	for i := 0; i < 1000; i += 5 {
+		for j := 0; j < i; j++ {
+			dq2.PushBack(j)
+		}
+		always(dq2, t)
+		bufA := make([]interface{}, 64, 64)
+		bufB := dq2.DequeueManyWithBuffer(0, bufA)
+		if len(bufB) != i {
+			t.Fatalf("dq2.DequeueManyWithBuffer(0, bufA) should return %d values", i)
+		}
+		always(dq2, t)
+		compareBufs(bufA, bufB, fmt.Sprintf("i: %d", i), t)
+	}
+
+	for i := 0; i < 2000; i += 5 {
+		for j := 5; j < 600; j += 25 {
+			dq3 := NewDeque()
+			for k := 0; k < i; k++ {
+				dq3.PushBack(k)
+			}
+			always(dq3, t)
+			left := i
+			for left > 0 {
+				c := j
+				if left < j {
+					c = left
+				}
+				bufA := make([]interface{}, 64, 64)
+				bufB := dq3.DequeueManyWithBuffer(j, bufA)
+				if len(bufB) != c {
+					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
+				}
+				left -= c
+				always(dq3, t)
+				str := fmt.Sprintf("len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
+				compareBufs(bufA, bufB, str, t)
 			}
 			if dq3.DequeueMany(0) != nil {
 				t.Fatalf("dq3.DequeueMany(0) != nil")

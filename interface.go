@@ -31,6 +31,9 @@ type Deque interface {
 	// returns the removed values or nil if the Deque is empty.
 	// If max <= 0, DequeueMany removes and returns all the values in Deque.
 	DequeueMany(max int) []Elem
+	// DequeueManyWithBuffer is similar to DequeueMany except that it uses
+	// buf to store the removed values as long as it has enough space.
+	DequeueManyWithBuffer(max int, buf []Elem) []Elem
 
 	// Range iterates all of the values in Deque.
 	Range(f func(i int, v Elem) bool)

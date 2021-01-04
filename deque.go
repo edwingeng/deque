@@ -200,6 +200,10 @@ func (dq *deque) PopFront() Elem {
 }
 
 func (dq *deque) DequeueMany(max int) []Elem {
+	return dq.dequeueManyImpl(max, nil)
+}
+
+func (dq *deque) dequeueManyImpl(max int, buf []Elem) []Elem {
 	n := dq.Len()
 	if n == 0 {
 		return nil
@@ -207,17 +211,25 @@ func (dq *deque) DequeueMany(max int) []Elem {
 	if max > 0 && n > max {
 		n = max
 	}
-	vals := make([]Elem, n)
+	if n <= cap(buf) {
+		buf = buf[:n]
+	} else {
+		buf = make([]Elem, n)
+	}
 	for i := 0; i < n; i++ {
 		c := dq.chunks[0]
-		vals[i] = c.data[c.s]
+		buf[i] = c.data[c.s]
 		c.data[c.s] = elemDefValue
 		c.s++
 		if c.s == chunkSize {
 			dq.shrinkStart()
 		}
 	}
-	return vals
+	return buf
+}
+
+func (dq *deque) DequeueManyWithBuffer(max int, buf []Elem) []Elem {
+	return dq.dequeueManyImpl(max, buf)
 }
 
 func (dq *deque) Back() Elem {
