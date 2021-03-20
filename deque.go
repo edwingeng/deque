@@ -104,11 +104,11 @@ func (dq *deque) shrinkEnd() {
 	dq.chunkPool.Put(c)
 	dq.eFree++
 	dq.chunks = dq.ptrPitch[dq.sFree:newEnd]
-	if dq.sFree+dq.eFree == n {
-		dq.sFree = n / 2
-		dq.eFree = n - dq.sFree
+	if dq.sFree+dq.eFree < n {
 		return
 	}
+	dq.sFree = n / 2
+	dq.eFree = n - dq.sFree
 }
 
 func (dq *deque) shrinkStart() {
@@ -120,13 +120,13 @@ func (dq *deque) shrinkStart() {
 	dq.ptrPitch[dq.sFree] = nil
 	dq.chunkPool.Put(c)
 	dq.sFree++
-	newEnd := len(dq.ptrPitch) - dq.eFree
-	dq.chunks = dq.ptrPitch[dq.sFree:newEnd]
-	if dq.sFree+dq.eFree == n {
-		dq.sFree = n / 2
-		dq.eFree = n - dq.sFree
+	curEnd := len(dq.ptrPitch) - dq.eFree
+	dq.chunks = dq.ptrPitch[dq.sFree:curEnd]
+	if dq.sFree+dq.eFree < n {
 		return
 	}
+	dq.sFree = n / 2
+	dq.eFree = n - dq.sFree
 }
 
 func (dq *deque) PushBack(v Elem) {
