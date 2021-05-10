@@ -299,7 +299,8 @@ func (dq *deque) Range(f func(i int, v Elem) bool) {
 	var i int
 	for _, c := range dq.chunks {
 		for j := c.s; j < c.e; j++ {
-			if !f(i, c.data[j]) {
+			v := c.data[j]
+			if !f(i, v) {
 				return
 			}
 			i++
