@@ -1,8 +1,6 @@
 # Overview
 Deque is a highly optimized double-ended queue.
 
-[![Build Status](https://travis-ci.com/edwingeng/deque.svg?branch=master)](https://travis-ci.com/edwingeng/deque)
-
 # Benchmark
 ```
 Benchmark_PushBack/Deque<harden>   100000000            10.3 ns/op         9 B/op          0 allocs/op
