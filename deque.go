@@ -5,7 +5,7 @@ import (
 	"sync/atomic"
 )
 
-const chunkSize = 255
+const chunkSize = 254
 
 var elemDefValue Elem
 

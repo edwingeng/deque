@@ -35,7 +35,7 @@ type Deque interface {
 	// buf to store the removed values as long as it has enough space.
 	DequeueManyWithBuffer(max int, buf []Elem) []Elem
 
-	// Range iterates all of the values in Deque.
+	// Range iterates all the values in Deque.
 	Range(f func(i int, v Elem) bool)
 
 	// Peek returns the value at idx

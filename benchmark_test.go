@@ -16,14 +16,14 @@ func benchNameSuffix() string {
 	if t == nil {
 		return ""
 	}
-	rex1 := regexp.MustCompile(`[a-zA-Z0-9_]+\.`)
+	rex1 := regexp.MustCompile(`\w+\.`)
 	str1 := rex1.ReplaceAllString(t.String(), "")
 	str2 := strings.ReplaceAll(str1, "interface {}", "interface{}")
 	str3 := fmt.Sprintf("<%s>", str2)
 	return str3
 }
 
-func Benchmark_PushBack(b *testing.B) {
+func BenchmarkPushBack(b *testing.B) {
 	b.Run("Deque"+benchNameSuffix(), func(b *testing.B) {
 		dq := NewDeque()
 		for i := 0; i < b.N; i++ {
@@ -38,7 +38,7 @@ func Benchmark_PushBack(b *testing.B) {
 	})
 }
 
-func Benchmark_PushFront(b *testing.B) {
+func BenchmarkPushFront(b *testing.B) {
 	b.Run("Deque"+benchNameSuffix(), func(b *testing.B) {
 		dq := NewDeque()
 		for i := 0; i < b.N; i++ {
@@ -53,7 +53,7 @@ func Benchmark_PushFront(b *testing.B) {
 	})
 }
 
-func Benchmark_Random(b *testing.B) {
+func BenchmarkRandom(b *testing.B) {
 	const na = 100000
 	a := make([]int, na)
 	for i := 0; i < na; i++ {
