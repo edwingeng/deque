@@ -10,9 +10,9 @@ const chunkSize = 254
 var elemDefValue Elem
 
 type chunk struct {
-	data [chunkSize]Elem
 	s    int
 	e    int
+	data [chunkSize]Elem
 }
 
 func (c *chunk) back() Elem {
