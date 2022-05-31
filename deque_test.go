@@ -10,7 +10,7 @@ import (
 	"unsafe"
 )
 
-func always(dq Deque, t *testing.T) {
+func invariant(dq Deque, t *testing.T) {
 	t.Helper()
 	dq1 := dq.(*deque)
 	if dq1.sFree < 0 || dq1.sFree > len(dq1.ptrPitch) {
@@ -48,7 +48,7 @@ func TestChunk(t *testing.T) {
 	dq1 := NewDeque()
 	for i := 0; i < 5; i++ {
 		dq1.PushBack(i)
-		always(dq1, t)
+		invariant(dq1, t)
 		if dq1.Back().(int) != i {
 			t.Fatal("dq1.Back().(int) != i")
 		}
@@ -70,7 +70,7 @@ func TestChunk(t *testing.T) {
 	dq2 := NewDeque()
 	for i := 0; i < 5; i++ {
 		dq2.PushFront(i)
-		always(dq2, t)
+		invariant(dq2, t)
 		if dq2.Back().(int) != 0 {
 			t.Fatal("dq2.Back().(int) != 0")
 		}
@@ -92,7 +92,7 @@ func TestDeque_realloc(t *testing.T) {
 		}
 		for i := 0; i < 3; i++ {
 			dq.realloc()
-			always(dq, t)
+			invariant(dq, t)
 			n := 64 * int(math.Pow(2, float64(i+1)))
 			if len(dq.ptrPitch) != n {
 				t.Fatal("len(dq.ptrPitch) != n")
@@ -117,7 +117,7 @@ func TestDeque_expandEnd(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.expandEnd()
-	always(dq, t)
+	invariant(dq, t)
 	if len(dq.chunks) != 1 {
 		t.Fatal("len(dq.chunks) != 1")
 	}
@@ -139,7 +139,7 @@ func TestDeque_expandStart(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.expandStart()
-	always(dq, t)
+	invariant(dq, t)
 	if len(dq.chunks) != 1 {
 		t.Fatal("len(dq.chunks) != 1")
 	}
@@ -163,7 +163,7 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.shrinkEnd()
-	always(dq, t)
+	invariant(dq, t)
 	if len(dq.chunks) != 9 {
 		t.Fatal("len(dq.chunks) != 9")
 	}
@@ -192,7 +192,7 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	dq.sFree = 60
 	dq.eFree = len(dq.ptrPitch) - dq.sFree - 1
 	dq.shrinkEnd()
-	always(dq, t)
+	invariant(dq, t)
 	if dq.sFree != 32 {
 		t.Fatal("dq.sFree != 32")
 	}
@@ -210,7 +210,7 @@ func TestDeque_shrinkStart(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.shrinkStart()
-	always(dq, t)
+	invariant(dq, t)
 	if len(dq.chunks) != 9 {
 		t.Fatal("len(dq.chunks) != 9")
 	}
@@ -239,7 +239,7 @@ func TestDeque_shrinkStart(t *testing.T) {
 	dq.sFree = 60
 	dq.eFree = len(dq.ptrPitch) - dq.sFree - 1
 	dq.shrinkEnd()
-	always(dq, t)
+	invariant(dq, t)
 	if dq.sFree != 32 {
 		t.Fatal("dq.sFree != 32")
 	}
@@ -259,7 +259,7 @@ func TestDeque_PushBack(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if dq.PopFront().(int) != i {
-			always(dq, t)
+			invariant(dq, t)
 			t.Fatal("dq.PopFront().(int) != i")
 		}
 	}
@@ -269,7 +269,7 @@ func TestDeque_PushBack(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if dq.PopBack().(int) != total-i-1 {
-			always(dq, t)
+			invariant(dq, t)
 			t.Fatal("dq.PopBack().(int) != total-i-1")
 		}
 	}
@@ -286,7 +286,7 @@ func TestDeque_PushFront(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if dq.PopFront().(int) != total-i-1 {
-			always(dq, t)
+			invariant(dq, t)
 			t.Fatal("dq.PopFront().(int) != total-i-1")
 		}
 	}
@@ -296,7 +296,7 @@ func TestDeque_PushFront(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if dq.PopBack().(int) != i {
-			always(dq, t)
+			invariant(dq, t)
 			t.Fatal("dq.PopBack().(int) != i")
 		}
 	}
@@ -308,7 +308,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 		if dq1.DequeueMany(i) != nil {
 			t.Fatalf("dq1.DequeueMany(%d) should return nil while dq1 is empty", i)
 		}
-		always(dq1, t)
+		invariant(dq1, t)
 	}
 
 	dq2 := NewDeque()
@@ -316,11 +316,11 @@ func TestDeque_DequeueMany(t *testing.T) {
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
 		}
-		always(dq2, t)
+		invariant(dq2, t)
 		if len(dq2.DequeueMany(0)) != i {
 			t.Fatalf("dq2.DequeueMany(0) should return %d values", i)
 		}
-		always(dq2, t)
+		invariant(dq2, t)
 	}
 
 	for i := 0; i < 2000; i += 5 {
@@ -329,7 +329,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
-			always(dq3, t)
+			invariant(dq3, t)
 			left := i
 			for left > 0 {
 				c := j
@@ -341,7 +341,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 					t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
 				}
 				left -= c
-				always(dq3, t)
+				invariant(dq3, t)
 			}
 			if dq3.DequeueMany(0) != nil {
 				t.Fatalf("dq3.DequeueMany(0) != nil")
@@ -375,7 +375,7 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 		if dq1.DequeueManyWithBuffer(i, nil) != nil {
 			t.Fatalf("dq1.DequeueManyWithBuffer(%d, nil) should return nil while dq1 is empty", i)
 		}
-		always(dq1, t)
+		invariant(dq1, t)
 	}
 
 	dq2 := NewDeque()
@@ -383,13 +383,13 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
 		}
-		always(dq2, t)
+		invariant(dq2, t)
 		bufA := make([]interface{}, 64, 64)
 		bufB := dq2.DequeueManyWithBuffer(0, bufA)
 		if len(bufB) != i {
 			t.Fatalf("dq2.DequeueManyWithBuffer(0, bufA) should return %d values", i)
 		}
-		always(dq2, t)
+		invariant(dq2, t)
 		compareBufs(bufA, bufB, fmt.Sprintf("i: %d", i), t)
 	}
 
@@ -399,7 +399,7 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
-			always(dq3, t)
+			invariant(dq3, t)
 			left := i
 			for left > 0 {
 				c := j
@@ -412,7 +412,7 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
 				}
 				left -= c
-				always(dq3, t)
+				invariant(dq3, t)
 				str := fmt.Sprintf("len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
 				compareBufs(bufA, bufB, str, t)
 			}
@@ -454,7 +454,7 @@ func TestDeque_Random(t *testing.T) {
 	dq := NewDeque()
 	var n int
 	for i := 0; i < 100000; i++ {
-		always(dq, t)
+		invariant(dq, t)
 		switch rand.Int() % 4 {
 		case 0:
 			dq.PushBack(i)
@@ -485,7 +485,7 @@ func TestDeque_Dump(t *testing.T) {
 	var a []Elem
 	dq := NewDeque().(*deque)
 	for i := 0; i < 10000; i++ {
-		always(dq, t)
+		invariant(dq, t)
 		switch rand.Int() % 5 {
 		case 0, 1:
 			dq.PushBack(i)
