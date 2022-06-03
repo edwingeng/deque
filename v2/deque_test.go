@@ -9,6 +9,7 @@ import (
 	"unsafe"
 )
 
+//gocyclo:ignore
 func invariant(dq *Deque[int], t *testing.T) {
 	t.Helper()
 	if dq.sFree < 0 || dq.sFree > len(dq.chunkPitch) {
@@ -104,6 +105,7 @@ func TestChunkSize(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestChunk(t *testing.T) {
 	dq1 := NewDeque[int]()
 	total1 := dq1.chunkSize * 3
