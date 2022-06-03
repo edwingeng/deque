@@ -1,19 +1,21 @@
 # Overview
 Deque is a highly optimized double-ended queue.
 
+**Please use [v2](v2/README.md), the generic version, if you have golang 1.18 or above.** 
+
 # Benchmark
 ```
-PushBack/Deque<harden>       100000000       10.3 ns/op       9 B/op      0 allocs/op
-PushBack/Deque                20000000       81.3 ns/op      24 B/op      1 allocs/op
-PushBack/list.List             5000000      281   ns/op      56 B/op      2 allocs/op
+PushBack/Deque<harden>       100000000       12.0 ns/op       8 B/op      0 allocs/op
+PushBack/Deque                20000000       55.5 ns/op      24 B/op      1 allocs/op
+PushBack/list.List             5000000      158.7 ns/op      56 B/op      1 allocs/op
 
-PushFront/Deque<harden>      195840157        8.0 ns/op       9 B/op      0 allocs/op
-PushFront/Deque               30000000       70.6 ns/op      24 B/op      1 allocs/op
-PushFront/list.List            5000000      276   ns/op      56 B/op      2 allocs/op
+PushFront/Deque<harden>      195840157        9.2 ns/op       8 B/op      0 allocs/op
+PushFront/Deque               30000000       49.2 ns/op      24 B/op      1 allocs/op
+PushFront/list.List            5000000      159.2 ns/op      56 B/op      1 allocs/op
 
-Random/Deque<harden>          65623633       17.3 ns/op       0 B/op      0 allocs/op
-Random/Deque                  50000000       32.1 ns/op       4 B/op      0 allocs/op
-Random/list.List              30000000      123   ns/op      28 B/op      1 allocs/op
+Random/Deque<harden>          65623633       15.1 ns/op       0 B/op      0 allocs/op
+Random/Deque                  50000000       24.7 ns/op       4 B/op      0 allocs/op
+Random/list.List              30000000       46.9 ns/op      28 B/op      1 allocs/op
 ```
 
 # Usage

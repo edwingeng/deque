@@ -311,6 +311,9 @@ func (dq *deque) Range(f func(i int, v Elem) bool) {
 func (dq *deque) Peek(idx int) Elem {
 	i := idx
 	for _, c := range dq.chunks {
+		if i < 0 {
+			break
+		}
 		n := c.e - c.s
 		if i < n {
 			return c.data[c.s+i]
@@ -323,6 +326,9 @@ func (dq *deque) Peek(idx int) Elem {
 func (dq *deque) Replace(idx int, v Elem) {
 	i := idx
 	for _, c := range dq.chunks {
+		if i < 0 {
+			break
+		}
 		n := c.e - c.s
 		if i < n {
 			c.data[c.s+i] = v

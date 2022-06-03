@@ -38,8 +38,8 @@ type Deque interface {
 	// Range iterates all the values in Deque.
 	Range(f func(i int, v Elem) bool)
 
-	// Peek returns the value at idx
+	// Peek returns the value at idx.
 	Peek(idx int) Elem
-	// Replace replaces the value at idx
+	// Replace replaces the value at idx.
 	Replace(idx int, v Elem)
 }
