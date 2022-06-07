@@ -486,36 +486,46 @@ func TestDeque_DequeueMany(t *testing.T) {
 	}
 
 	dq2 := NewDeque[int]()
-	for i := 0; i < 1000; i += 5 {
+	for i := 0; i < 500; i++ {
+		expected := make([]int, i)
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
+			expected[j] = j
 		}
 		invariant(dq2, t)
-		if len(dq2.DequeueMany(0)) != i {
+		ret := dq2.DequeueMany(0)
+		if len(ret) != i {
 			t.Fatalf("dq2.DequeueMany(0) should return %d values", i)
 		}
 		invariant(dq2, t)
+		compareBufs(nil, ret, expected, fmt.Sprintf("i: %d", i), t)
 	}
 
 	for i := 0; i < 2000; i += 5 {
+		expected := make([]int, i)
+		for k := 0; k < i; k++ {
+			expected[k] = k
+		}
 		for j := 5; j < 600; j += 25 {
 			dq3 := NewDeque[int]()
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
 			invariant(dq3, t)
-			left := i
-			for left > 0 {
+			remaining := i
+			for remaining > 0 {
 				c := j
-				if left < j {
-					c = left
+				if remaining < j {
+					c = remaining
 				}
-				vals := dq3.DequeueMany(j)
-				if len(vals) != c {
-					t.Fatalf("len(vals) != c. len: %d, c: %d, i: %d, j: %d", len(vals), c, i, j)
+				ret := dq3.DequeueMany(j)
+				if len(ret) != c {
+					t.Fatalf("len(ret) != c. len: %d, c: %d, i: %d, j: %d", len(ret), c, i, j)
 				}
-				left -= c
 				invariant(dq3, t)
+				start := i - remaining
+				compareBufs(nil, ret, expected[start:start+c], fmt.Sprintf("i: %d, j: %d", i, j), t)
+				remaining -= c
 			}
 			if dq3.DequeueMany(0) != nil {
 				t.Fatalf("dq3.DequeueMany(0) != nil")
@@ -524,9 +534,17 @@ func TestDeque_DequeueMany(t *testing.T) {
 	}
 }
 
-func compareBufs(bufA, bufB []int, suffix string, t *testing.T) {
+func compareBufs(bufA, bufB, expected []int, suffix string, t *testing.T) {
 	t.Helper()
-	if bufB == nil {
+	if len(bufB) != len(expected) {
+		t.Fatal(`len(bufB) != len(expected). ` + suffix)
+	}
+	for i, v := range expected {
+		if bufB[i] != v {
+			t.Fatal(`bufB[i] != v. ` + suffix)
+		}
+	}
+	if bufA == nil || bufB == nil {
 		return
 	}
 
@@ -553,9 +571,11 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 	}
 
 	dq2 := NewDeque[int]()
-	for i := 0; i < 1000; i += 5 {
+	for i := 0; i < 500; i++ {
+		expected := make([]int, i)
 		for j := 0; j < i; j++ {
 			dq2.PushBack(j)
+			expected[j] = j
 		}
 		invariant(dq2, t)
 		bufA := make([]int, 64, 64)
@@ -564,31 +584,36 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 			t.Fatalf("dq2.DequeueManyWithBuffer(0, bufA) should return %d values", i)
 		}
 		invariant(dq2, t)
-		compareBufs(bufA, bufB, fmt.Sprintf("i: %d", i), t)
+		compareBufs(bufA, bufB, expected, fmt.Sprintf("i: %d", i), t)
 	}
 
 	for i := 0; i < 2000; i += 5 {
+		expected := make([]int, i)
+		for k := 0; k < i; k++ {
+			expected[k] = k
+		}
 		for j := 5; j < 600; j += 25 {
 			dq3 := NewDeque[int]()
 			for k := 0; k < i; k++ {
 				dq3.PushBack(k)
 			}
 			invariant(dq3, t)
-			left := i
-			for left > 0 {
+			remaining := i
+			for remaining > 0 {
 				c := j
-				if left < j {
-					c = left
+				if remaining < j {
+					c = remaining
 				}
 				bufA := make([]int, 64, 64)
 				bufB := dq3.DequeueManyWithBuffer(j, bufA)
 				if len(bufB) != c {
 					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
 				}
-				left -= c
 				invariant(dq3, t)
+				start := i - remaining
 				str := fmt.Sprintf("len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
-				compareBufs(bufA, bufB, str, t)
+				compareBufs(bufA, bufB, expected[start:start+c], str, t)
+				remaining -= c
 			}
 			if dq3.DequeueMany(0) != nil {
 				t.Fatalf("dq3.DequeueMany(0) != nil")

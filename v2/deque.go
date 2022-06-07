@@ -291,6 +291,7 @@ func (dq *Deque[T]) DequeueManyWithBuffer(max int, buf []T) []T {
 		c := dq.chunks[0]
 		num := minInt(n, c.e-c.s)
 		copy(buf[i:], c.data[c.s:c.s+num])
+		i += num
 		for j := c.s; j < c.s+num; j++ {
 			c.data[j] = defVal
 		}
