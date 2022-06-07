@@ -578,7 +578,8 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 			expected[j] = j
 		}
 		invariant(dq2, t)
-		bufA := make([]int, 64, 64)
+		size := dq2.chunkSize * 2 / (i%3 + 1)
+		bufA := make([]int, size, size)
 		bufB := dq2.DequeueManyWithBuffer(0, bufA)
 		if len(bufB) != i {
 			t.Fatalf("dq2.DequeueManyWithBuffer(0, bufA) should return %d values", i)
@@ -604,7 +605,8 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 				if remaining < j {
 					c = remaining
 				}
-				bufA := make([]int, 64, 64)
+				size := dq2.chunkSize * 2 / (i%3 + 1)
+				bufA := make([]int, size, size)
 				bufB := dq3.DequeueManyWithBuffer(j, bufA)
 				if len(bufB) != c {
 					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)

@@ -22,7 +22,7 @@ Random/list.List              30000000       46.9 ns/op      28 B/op      1 allo
 ``` go
 import "github.com/edwingeng/deque"
 
-dq := NewDeque()
+dq := deque.NewDeque()
 dq.PushBack(100)
 dq.PushBack(200)
 dq.PushBack(300)
