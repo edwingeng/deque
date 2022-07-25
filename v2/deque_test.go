@@ -103,6 +103,16 @@ func TestChunkSize(t *testing.T) {
 	if NewDeque[[9]int64]().chunkSize != 16 {
 		t.Fatal(`NewDeque[[9]int64]().chunkSize != 16`)
 	}
+
+	if NewDeque[int64](WithChunkSize(-100)).chunkSize != 128 {
+		t.Fatal(`NewDeque[int64](WithChunkSize(-100)).chunkSize != 128`)
+	}
+	if NewDeque[int64](WithChunkSize(0)).chunkSize != 128 {
+		t.Fatal(`NewDeque[int64](WithChunkSize(0)).chunkSize != 128`)
+	}
+	if NewDeque[int64](WithChunkSize(20)).chunkSize != 20 {
+		t.Fatal(`NewDeque[int64](WithChunkSize(20)).chunkSize != 20`)
+	}
 }
 
 //gocyclo:ignore

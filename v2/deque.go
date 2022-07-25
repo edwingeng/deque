@@ -61,15 +61,25 @@ func maxInt(a, b int) int {
 	}
 }
 
+type optionHolder struct {
+	chunkSize int
+}
+
 // NewDeque creates a new Deque instance.
-func NewDeque[T any]() *Deque[T] {
+func NewDeque[T any](opts ...Option) *Deque[T] {
 	dq := &Deque[T]{
 		chunkPitch: make([]*chunk[T], 64),
 		sFree:      32,
 		eFree:      32,
 	}
 
-	dq.chunkSize = maxInt(1024/int(unsafe.Sizeof(*new(T))), 16)
+	var holder optionHolder
+	holder.chunkSize = maxInt(1024/int(unsafe.Sizeof(*new(T))), 16)
+	for _, opt := range opts {
+		opt(&holder)
+	}
+
+	dq.chunkSize = holder.chunkSize
 	dq.chunkPool = sync.Pool{
 		New: func() any {
 			return newChunk[T](dq.chunkSize)
@@ -421,4 +431,14 @@ func (dq *Deque[T]) Replace(idx int, v T) {
 		i -= n
 	}
 	panic(fmt.Errorf("out of range: %d", idx))
+}
+
+type Option func(*optionHolder)
+
+func WithChunkSize(n int) Option {
+	return func(holder *optionHolder) {
+		if n > 0 {
+			holder.chunkSize = n
+		}
+	}
 }
