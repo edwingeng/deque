@@ -69,19 +69,19 @@ func (dq *Deque[T]) PopFront() T
 
 func (dq *Deque[T]) TryPopBack() (_ T, ok bool)
     TryPopBack tries to remove a value from the back of dq and returns the
-    removed value and true if dq is not empty, otherwise it returns false.
+    removed value if any. The return value ok indicates whether it succeeded.
 
 func (dq *Deque[T]) TryPopFront() (_ T, ok bool)
     TryPopFront tries to remove a value from the front of dq and returns the
-    removed value and true if dq is not empty, otherwise it returns false.
+    removed value if any. The return value ok indicates whether it succeeded.
 
 func (dq *Deque[T]) Back() (_ T, ok bool)
-    Back returns the last value of dq and true if dq is not empty, otherwise it
-    returns false.
+    Back returns the last value of dq if any. The return value ok indicates
+    whether it succeeded.
 
 func (dq *Deque[T]) Front() (_ T, ok bool)
-    Front returns the first value of dq and true if dq is not empty, otherwise
-    it returns false.
+    Front returns the first value of dq if any. The return value ok indicates
+    whether it succeeded.
 
 func (dq *Deque[T]) IsEmpty() bool
     IsEmpty returns whether dq is empty.
@@ -112,10 +112,10 @@ func (dq *Deque[T]) Range(f func(i int, v T) bool)
     Range iterates all the values in dq.
 
 func (dq *Deque[T]) Peek(idx int) T
-    Peek returns the value at idx.
+    Peek returns the value at idx. It panics if idx is out of range.
 
 func (dq *Deque[T]) Replace(idx int, v T)
-    Replace replaces the value at idx.
+    Replace replaces the value at idx. It panics if idx is out of range.
 
 func (dq *Deque[T]) Dump() []T
     Dump returns all the values in dq.

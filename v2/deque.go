@@ -192,8 +192,8 @@ func (dq *Deque[T]) PushFront(v T) {
 	c.data[c.s] = v
 }
 
-// TryPopBack tries to remove a value from the back of dq and returns the removed value
-// and true if dq is not empty, otherwise it returns false.
+// TryPopBack tries to remove a value from the back of dq and returns the removed value if any.
+// The return value ok indicates whether it succeeded.
 func (dq *Deque[T]) TryPopBack() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -235,7 +235,7 @@ func (dq *Deque[T]) PopBack() T {
 }
 
 // TryPopFront tries to remove a value from the front of dq and returns the removed value
-// and true if dq is not empty, otherwise it returns false.
+// if any. The return value ok indicates whether it succeeded.
 func (dq *Deque[T]) TryPopFront() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -319,8 +319,8 @@ func (dq *Deque[T]) DequeueManyWithBuffer(max int, buf []T) []T {
 	return buf
 }
 
-// Back returns the last value of dq
-// and true if dq is not empty, otherwise it returns false.
+// Back returns the last value of dq if any. The return value ok
+// indicates whether it succeeded.
 func (dq *Deque[T]) Back() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -329,8 +329,8 @@ func (dq *Deque[T]) Back() (_ T, ok bool) {
 	return dq.chunks[n-1].back()
 }
 
-// Front returns the first value of dq
-// and true if dq is not empty, otherwise it returns false.
+// Front returns the first value of dq if any. The return value ok
+// indicates whether it succeeded.
 func (dq *Deque[T]) Front() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -405,7 +405,7 @@ func (dq *Deque[T]) Range(f func(i int, v T) bool) {
 	}
 }
 
-// Peek returns the value at idx.
+// Peek returns the value at idx. It panics if idx is out of range.
 func (dq *Deque[T]) Peek(idx int) T {
 	i := idx
 	for _, c := range dq.chunks {
@@ -421,7 +421,7 @@ func (dq *Deque[T]) Peek(idx int) T {
 	panic(fmt.Errorf("out of range: %d", idx))
 }
 
-// Replace replaces the value at idx.
+// Replace replaces the value at idx. It panics if idx is out of range.
 func (dq *Deque[T]) Replace(idx int, v T) {
 	i := idx
 	for _, c := range dq.chunks {
