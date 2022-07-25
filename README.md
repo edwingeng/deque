@@ -1,9 +1,9 @@
+**Please use [the generic version](v2), if you have golang 1.18 or above.**
+
 # Overview
 Deque is a highly optimized double-ended queue, which is
 much efficient compared with `list.List` when adding or removing elements from
 the beginning or the end.
-
-**Please use [v2](v2/README.md), the generic version, if you have golang 1.18 or above.** 
 
 # Benchmark
 ```
