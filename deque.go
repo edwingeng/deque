@@ -44,7 +44,7 @@ var (
 	})
 )
 
-// NewDeque creates a new Deque.
+// NewDeque creates a new Deque instance.
 func NewDeque() Deque {
 	dq := &deque{
 		ptrPitch:  make([]*chunk, 64),

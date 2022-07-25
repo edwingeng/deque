@@ -1,8 +1,11 @@
+// Package deque implements a highly optimized double-ended queue, which is
+// much efficient compared with list.List when adding or removing elements from
+// the beginning or the end.
 package deque
 
 type Elem = interface{}
 
-// Deque is a fast double-ended queue.
+// Deque is a highly optimized double-ended queue.
 type Deque interface {
 	// PushBack adds a new value v at the back of Deque.
 	PushBack(v Elem)

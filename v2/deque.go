@@ -1,3 +1,6 @@
+// Package deque implements a highly optimized double-ended queue, which is
+// much efficient compared with list.List when adding or removing elements from
+// the beginning or the end.
 package deque
 
 import (
@@ -35,6 +38,7 @@ func (c *chunk[T]) front() (T, bool) {
 	return *new(T), false
 }
 
+// Deque is a highly optimized double-ended queue.
 type Deque[T any] struct {
 	chunks     []*chunk[T]
 	chunkPitch []*chunk[T]
@@ -165,7 +169,7 @@ func (dq *Deque[T]) shrinkStart() {
 	dq.eFree = n - dq.sFree
 }
 
-// PushBack adds a new value v at the back of Deque.
+// PushBack adds a new value at the back of dq.
 func (dq *Deque[T]) PushBack(v T) {
 	n := len(dq.chunks)
 	if n == 0 || dq.chunks[n-1].e == dq.chunkSize {
@@ -177,7 +181,7 @@ func (dq *Deque[T]) PushBack(v T) {
 	c.e++
 }
 
-// PushFront adds a new value v at the front of Deque.
+// PushFront adds a new value at the front of dq.
 func (dq *Deque[T]) PushFront(v T) {
 	n := len(dq.chunks)
 	if n == 0 || dq.chunks[0].s == 0 {
@@ -188,8 +192,8 @@ func (dq *Deque[T]) PushFront(v T) {
 	c.data[c.s] = v
 }
 
-// TryPopBack tries to remove a value from the back of Deque and returns the removed value.
-// ok is false if Deque is empty.
+// TryPopBack tries to remove a value from the back of dq and returns the removed value
+// and true if dq is not empty, otherwise it returns false.
 func (dq *Deque[T]) TryPopBack() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -209,8 +213,8 @@ func (dq *Deque[T]) TryPopBack() (_ T, ok bool) {
 	return r, true
 }
 
-// PopBack removes a value from the back of Deque and returns the removed value.
-// It panics if Deque is empty.
+// PopBack removes a value from the back of dq and returns the removed value.
+// It panics if dq is empty.
 func (dq *Deque[T]) PopBack() T {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -230,8 +234,8 @@ func (dq *Deque[T]) PopBack() T {
 	return r
 }
 
-// TryPopFront tries to remove a value from the front of Deque and returns the removed value.
-// ok is false if Deque is empty.
+// TryPopFront tries to remove a value from the front of dq and returns the removed value
+// and true if dq is not empty, otherwise it returns false.
 func (dq *Deque[T]) TryPopFront() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -251,8 +255,8 @@ func (dq *Deque[T]) TryPopFront() (_ T, ok bool) {
 	return r, true
 }
 
-// PopFront removes a value from the front of Deque and returns the removed value.
-// It panics if Deque is empty.
+// PopFront removes a value from the front of dq and returns the removed value.
+// It panics if dq is empty.
 func (dq *Deque[T]) PopFront() T {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -272,9 +276,10 @@ func (dq *Deque[T]) PopFront() T {
 	return r
 }
 
-// DequeueMany removes a number of values from the front of Deque and
-// returns the removed values or nil if the Deque is empty.
-// If max <= 0, DequeueMany removes and returns all the values in Deque.
+// DequeueMany removes a number of values from the front of dq and returns
+// the removed values or nil if dq is empty.
+//
+// If max <= 0, DequeueMany removes and returns all the values in dq.
 func (dq *Deque[T]) DequeueMany(max int) []T {
 	return dq.DequeueManyWithBuffer(max, nil)
 }
@@ -314,8 +319,8 @@ func (dq *Deque[T]) DequeueManyWithBuffer(max int, buf []T) []T {
 	return buf
 }
 
-// Back returns the last value of Deque.
-// ok is false if Deque is empty.
+// Back returns the last value of dq
+// and true if dq is not empty, otherwise it returns false.
 func (dq *Deque[T]) Back() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -324,8 +329,8 @@ func (dq *Deque[T]) Back() (_ T, ok bool) {
 	return dq.chunks[n-1].back()
 }
 
-// Front returns the first value of Deque.
-// ok is false if Deque is empty.
+// Front returns the first value of dq
+// and true if dq is not empty, otherwise it returns false.
 func (dq *Deque[T]) Front() (_ T, ok bool) {
 	n := len(dq.chunks)
 	if n == 0 {
@@ -334,13 +339,13 @@ func (dq *Deque[T]) Front() (_ T, ok bool) {
 	return dq.chunks[0].front()
 }
 
-// IsEmpty returns whether Deque is empty.
+// IsEmpty returns whether dq is empty.
 func (dq *Deque[T]) IsEmpty() bool {
 	n := len(dq.chunks)
 	return n == 0 || n == 1 && dq.chunks[0].e == dq.chunks[0].s
 }
 
-// Len returns the number of values in Deque.
+// Len returns the number of values in dq.
 func (dq *Deque[T]) Len() int {
 	n := len(dq.chunks)
 	switch n {
@@ -368,7 +373,7 @@ func (dq *Deque[T]) Dequeue() T {
 	return dq.PopFront()
 }
 
-// Dump returns all the values in Deque.
+// Dump returns all the values in dq.
 func (dq *Deque[T]) Dump() []T {
 	n := dq.Len()
 	if n == 0 {
@@ -386,7 +391,7 @@ func (dq *Deque[T]) Dump() []T {
 	return vals
 }
 
-// Range iterates all the values in Deque.
+// Range iterates all the values in dq.
 func (dq *Deque[T]) Range(f func(i int, v T) bool) {
 	var i int
 	for _, c := range dq.chunks {
@@ -433,8 +438,10 @@ func (dq *Deque[T]) Replace(idx int, v T) {
 	panic(fmt.Errorf("out of range: %d", idx))
 }
 
+// Option represents the option of the Deque.
 type Option func(*optionHolder)
 
+// WithChunkSize sets the chunk size of a Deque.
 func WithChunkSize(n int) Option {
 	return func(holder *optionHolder) {
 		if n > 0 {
