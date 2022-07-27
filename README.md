@@ -20,15 +20,13 @@ Random/Deque                  50000000       24.7 ns/op       4 B/op      0 allo
 Random/list.List              30000000       46.9 ns/op      28 B/op      1 allocs/op
 ```
 
-# Getting started
+# Getting Started
 ```
 go get -u github.com/edwingeng/deque
 ```
 
 # Usage
 ``` go
-import "github.com/edwingeng/deque"
-
 dq := deque.NewDeque()
 dq.PushBack(100)
 dq.PushBack(200)
