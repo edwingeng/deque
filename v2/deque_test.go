@@ -4,14 +4,32 @@ import (
 	"fmt"
 	"math/rand"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 	"unsafe"
 )
 
+type invariantParams struct {
+	skipChunkMerge bool
+}
+
+type invariantOption func(params *invariantParams)
+
+func skipChunkMerge() invariantOption {
+	return func(params *invariantParams) {
+		params.skipChunkMerge = true
+	}
+}
+
 //gocyclo:ignore
-func invariant(dq *Deque[int], t *testing.T) {
+func invariant(t *testing.T, dq *Deque[int], opts ...invariantOption) {
 	t.Helper()
+	var params invariantParams
+	for _, opt := range opts {
+		opt(&params)
+	}
+
 	if dq.sFree < 0 || dq.sFree > len(dq.chunkPitch) {
 		t.Fatal("dq.sFree < 0 || dq.sFree > len(dq.chunkPitch)")
 	}
@@ -23,27 +41,35 @@ func invariant(dq *Deque[int], t *testing.T) {
 	}
 
 	if dq.chunks != nil && dq.chunkPitch != nil {
-		s1 := (*reflect.SliceHeader)(unsafe.Pointer(&dq.chunks))
-		s2 := (*reflect.SliceHeader)(unsafe.Pointer(&dq.chunkPitch))
-		if s1.Data < s2.Data || s1.Data >= s2.Data+uintptr(s2.Cap)*unsafe.Sizeof(*new(int)) {
-			t.Fatal(`s1.Data < s2.Data || s1.Data >= s2.Data+uintptr(s2.Cap)*unsafe.Sizeof(*new(int))`)
+		x1 := (*reflect.SliceHeader)(unsafe.Pointer(&dq.chunks))
+		x2 := (*reflect.SliceHeader)(unsafe.Pointer(&dq.chunkPitch))
+		beyond := x2.Data + uintptr(x2.Cap)*unsafe.Sizeof(*new(int))
+		if x1.Data < x2.Data || x1.Data >= beyond {
+			t.Fatal(`x1.Data < x2.Data || x1.Data >= beyond`)
 		}
 	}
 
-	if n := dq.Len(); n <= dq.chunkSize {
-		if len(dq.chunks) > 2 {
-			t.Fatal("len(dq.chunks) > 2")
-		}
-	} else {
-		if len(dq.chunks) < n/dq.chunkSize {
-			t.Fatal("len(dq.chunks) < n/dq.chunkSize")
-		}
-		if len(dq.chunks) > n/dq.chunkSize+2 {
-			t.Fatal("len(dq.chunks) > n/dq.chunkSize+2")
+	if t.Name() != "TestDeque_shrinkEnd" && t.Name() != "TestDeque_shrinkStart" {
+		for i := 0; i < len(dq.chunkPitch); i++ {
+			if i < dq.sFree {
+				if dq.chunkPitch[i] != nil {
+					t.Fatal(`dq.chunkPitch[i] != nil [1]`)
+				}
+			} else if i >= len(dq.chunkPitch)-dq.eFree {
+				if dq.chunkPitch[i] != nil {
+					t.Fatal(`dq.chunkPitch[i] != nil [2]`)
+				}
+			} else {
+				if dq.chunkPitch[i] == nil {
+					t.Fatal(`dq.chunkPitch[i] == nil`)
+				}
+			}
 		}
 	}
 
+	var count int
 	for i, c := range dq.chunks {
+		count += c.e - c.s
 		if c.s < 0 || c.s > dq.chunkSize {
 			t.Fatal("c.s < 0 || c.s > dq.chunkSize")
 		}
@@ -56,23 +82,17 @@ func invariant(dq *Deque[int], t *testing.T) {
 		if c != dq.chunkPitch[dq.sFree+i] {
 			t.Fatal("c != dq.chunkPitch[dq.sFree+i]")
 		}
+		if c.e < c.s {
+			t.Fatal(`c.e < c.s`)
+		}
 
-		if len(dq.chunks) >= 2 {
-			switch i {
-			case 0:
-				if c.e != dq.chunkSize {
-					t.Fatal("c.e != dq.chunkSize")
+		if !params.skipChunkMerge {
+			if i+1 < len(dq.chunks) {
+				if (c.e-c.s)+(dq.chunkSize>>2) <= dq.chunks[i+1].s {
+					t.Fatal(`(c.e-c.s)+(dq.chunkSize>>2) <= dq.chunks[i+1].s`)
 				}
-			case len(dq.chunks) - 1:
-				if c.s != 0 {
-					t.Fatal("c.s != 0")
-				}
-			default:
-				if c.s != 0 {
-					t.Fatal("c.s != 0")
-				}
-				if c.e != dq.chunkSize {
-					t.Fatal("c.e != dq.chunkSize")
+				if (dq.chunks[i+1].e-dq.chunks[i+1].s)+(dq.chunkSize>>2) <= dq.chunkSize-c.e {
+					t.Fatal(`(dq.chunks[i+1].e-dq.chunks[i+1].s)+(dq.chunkSize>>2) <= dq.chunkSize-c.e`)
 				}
 			}
 		}
@@ -121,7 +141,7 @@ func TestChunk(t *testing.T) {
 	total1 := dq1.chunkSize * 3
 	for i := 0; i < total1; i++ {
 		dq1.PushBack(i)
-		invariant(dq1, t)
+		invariant(t, dq1)
 		if v, ok := dq1.Back(); !ok || v != i {
 			t.Fatal("!ok || v != i")
 		}
@@ -154,12 +174,13 @@ func TestChunk(t *testing.T) {
 	if _, ok := dq1.chunks[0].front(); ok {
 		t.Fatal("ok should be false")
 	}
+	invariant(t, dq1)
 
 	dq2 := NewDeque[int]()
 	total2 := dq2.chunkSize * 3
 	for i := 0; i < total2; i++ {
 		dq2.PushFront(i)
-		invariant(dq2, t)
+		invariant(t, dq2)
 		if v, ok := dq2.Back(); !ok || v != 0 {
 			t.Fatal("!ok || v != 0")
 		}
@@ -192,6 +213,7 @@ func TestChunk(t *testing.T) {
 	if _, ok := dq2.chunks[0].front(); ok {
 		t.Fatal("ok should be false")
 	}
+	invariant(t, dq1)
 }
 
 func TestDeque_realloc(t *testing.T) {
@@ -202,15 +224,15 @@ func TestDeque_realloc(t *testing.T) {
 		for j := 0; j < count; j++ {
 			dq1.PushBack(j)
 		}
-		pitchLen := 64
+		pitchLen := defaultPitchSize
 		for j := 0; j < i+1; j++ {
 			pitchLen *= 2
 		}
 		if len(dq1.chunkPitch) != pitchLen {
 			t.Fatal(`len(dq1.chunkPitch) != pitchLen`)
 		}
-		if dq1.sFree != 32 {
-			t.Fatal(`dq1.sFree != 32`)
+		if dq1.sFree != (pitchLen-(len(dq1.chunks)-1))/2 {
+			t.Fatal(`dq1.sFree != (pitchLen-(len(dq1.chunks)-1))/2`)
 		}
 	}
 
@@ -221,15 +243,15 @@ func TestDeque_realloc(t *testing.T) {
 		for j := 0; j < count; j++ {
 			dq2.PushFront(j)
 		}
-		pitchLen := 64
+		pitchLen := defaultPitchSize
 		for j := 0; j < i+1; j++ {
 			pitchLen *= 2
 		}
 		if len(dq2.chunkPitch) != pitchLen {
 			t.Fatal(`len(dq2.chunkPitch) != pitchLen`)
 		}
-		if dq2.eFree != 32 {
-			t.Fatal(`dq2.eFree != 32`)
+		if dq2.sFree != (pitchLen-(len(dq2.chunks)-1))/2-1 {
+			t.Fatal(`dq2.sFree != (pitchLen-(len(dq2.chunks)-1))/2-1`)
 		}
 	}
 }
@@ -241,7 +263,7 @@ func TestDeque_expandEnd(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.expandEnd()
-	invariant(dq, t)
+	invariant(t, dq)
 	if len(dq.chunks) != 1 {
 		t.Fatal("len(dq.chunks) != 1")
 	}
@@ -263,7 +285,7 @@ func TestDeque_expandStart(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.expandStart()
-	invariant(dq, t)
+	invariant(t, dq)
 	if len(dq.chunks) != 1 {
 		t.Fatal("len(dq.chunks) != 1")
 	}
@@ -290,7 +312,8 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.shrinkEnd()
-	invariant(dq, t)
+	dq.count = dq.chunkSize * (len(dq.chunkPitch) - dq.sFree - dq.eFree)
+	invariant(t, dq)
 	if len(dq.chunks) != 9 {
 		t.Fatal("len(dq.chunks) != 9")
 	}
@@ -319,7 +342,8 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	dq.sFree = 60
 	dq.eFree = len(dq.chunkPitch) - dq.sFree - 1
 	dq.shrinkEnd()
-	invariant(dq, t)
+	dq.count = dq.chunkSize * (len(dq.chunkPitch) - dq.sFree - dq.eFree)
+	invariant(t, dq)
 	if dq.sFree != 32 {
 		t.Fatal("dq.sFree != 32")
 	}
@@ -340,7 +364,8 @@ func TestDeque_shrinkStart(t *testing.T) {
 	sf := dq.sFree
 	ef := dq.eFree
 	dq.shrinkStart()
-	invariant(dq, t)
+	dq.count = dq.chunkSize * (len(dq.chunkPitch) - dq.sFree - dq.eFree)
+	invariant(t, dq)
 	if len(dq.chunks) != 9 {
 		t.Fatal("len(dq.chunks) != 9")
 	}
@@ -369,7 +394,8 @@ func TestDeque_shrinkStart(t *testing.T) {
 	dq.sFree = 60
 	dq.eFree = len(dq.chunkPitch) - dq.sFree - 1
 	dq.shrinkEnd()
-	invariant(dq, t)
+	dq.count = dq.chunkSize * (len(dq.chunkPitch) - dq.sFree - dq.eFree)
+	invariant(t, dq)
 	if dq.sFree != 32 {
 		t.Fatal("dq.sFree != 32")
 	}
@@ -380,7 +406,7 @@ func TestDeque_shrinkStart(t *testing.T) {
 
 func TestDeque_PushBack(t *testing.T) {
 	dq := NewDeque[int]()
-	const total = 10000
+	total := dq.chunkSize * 10
 	for i := 0; i < total; i++ {
 		if dq.Len() != i {
 			t.Fatal("dq.Len() != i")
@@ -389,8 +415,17 @@ func TestDeque_PushBack(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if v := dq.PopFront(); v != i {
-			invariant(dq, t)
+			invariant(t, dq)
 			t.Fatal("v != i")
+		}
+	}
+	for i := 0; i < total; i++ {
+		dq.PushBack(i)
+	}
+	for i := 0; i < total; i++ {
+		if v, ok := dq.TryPopFront(); !ok || v != i {
+			invariant(t, dq)
+			t.Fatal("!ok || v != i")
 		}
 	}
 
@@ -399,15 +434,24 @@ func TestDeque_PushBack(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if v := dq.PopBack(); v != total-i-1 {
-			invariant(dq, t)
+			invariant(t, dq)
 			t.Fatal("v != total-i-1")
+		}
+	}
+	for i := 0; i < total; i++ {
+		dq.PushBack(i)
+	}
+	for i := 0; i < total; i++ {
+		if v, ok := dq.TryPopBack(); !ok || v != total-i-1 {
+			invariant(t, dq)
+			t.Fatal("!ok || v != total-i-1")
 		}
 	}
 }
 
 func TestDeque_PushFront(t *testing.T) {
 	dq := NewDeque[int]()
-	const total = 10000
+	total := dq.chunkSize * 10
 	for i := 0; i < total; i++ {
 		if dq.Len() != i {
 			t.Fatal("dq.Len() != i")
@@ -416,8 +460,17 @@ func TestDeque_PushFront(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if v := dq.PopFront(); v != total-i-1 {
-			invariant(dq, t)
+			invariant(t, dq)
 			t.Fatal("v != total-i-1")
+		}
+	}
+	for i := 0; i < total; i++ {
+		dq.PushFront(i)
+	}
+	for i := 0; i < total; i++ {
+		if v, ok := dq.TryPopFront(); !ok || v != total-i-1 {
+			invariant(t, dq)
+			t.Fatal("!ok || v != total-i-1")
 		}
 	}
 
@@ -426,8 +479,17 @@ func TestDeque_PushFront(t *testing.T) {
 	}
 	for i := 0; i < total; i++ {
 		if v := dq.PopBack(); v != i {
-			invariant(dq, t)
+			invariant(t, dq)
 			t.Fatal("v != i")
+		}
+	}
+	for i := 0; i < total; i++ {
+		dq.PushFront(i)
+	}
+	for i := 0; i < total; i++ {
+		if v, ok := dq.TryPopBack(); !ok || v != i {
+			invariant(t, dq)
+			t.Fatal("!ok || v != i")
 		}
 	}
 }
@@ -492,7 +554,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 		if dq1.DequeueMany(i) != nil {
 			t.Fatalf("dq1.DequeueMany(%d) should return nil while dq1 is empty", i)
 		}
-		invariant(dq1, t)
+		invariant(t, dq1)
 	}
 
 	dq2 := NewDeque[int]()
@@ -502,39 +564,46 @@ func TestDeque_DequeueMany(t *testing.T) {
 			dq2.PushBack(j)
 			expected[j] = j
 		}
-		invariant(dq2, t)
+		invariant(t, dq2)
 		ret := dq2.DequeueMany(0)
 		if len(ret) != i {
 			t.Fatalf("dq2.DequeueMany(0) should return %d values", i)
 		}
-		invariant(dq2, t)
-		compareBufs(nil, ret, expected, fmt.Sprintf("i: %d", i), t)
+		invariant(t, dq2)
+		checkBufs(nil, ret, expected, fmt.Sprintf("i: %d", i), t)
 	}
 
-	for i := 0; i < 2000; i += 5 {
-		expected := make([]int, i)
-		for k := 0; k < i; k++ {
-			expected[k] = k
+	const total = 100
+	whole := make([]int, total)
+	for i := 0; i < total; i++ {
+		whole[i] = i
+	}
+
+	dq3 := NewDeque[int](WithChunkSize(16))
+	steps := []int{1, 2, 3, 5, 7, 8, 15, 16, 17, 31, 32, 33, 47, 48, 49}
+	for i := 0; i < total; i++ {
+		if dq3.Len() != 0 {
+			t.Fatal(`dq3.Len() != 0`)
 		}
-		for j := 5; j < 600; j += 25 {
-			dq3 := NewDeque[int]()
-			for k := 0; k < i; k++ {
-				dq3.PushBack(k)
+		expected := whole[:i]
+		for _, step := range steps {
+			for j := 0; j < i; j++ {
+				dq3.PushBack(j)
 			}
-			invariant(dq3, t)
+			invariant(t, dq3)
 			remaining := i
 			for remaining > 0 {
-				c := j
-				if remaining < j {
+				c := step
+				if remaining < step {
 					c = remaining
 				}
-				ret := dq3.DequeueMany(j)
+				ret := dq3.DequeueMany(step)
 				if len(ret) != c {
-					t.Fatalf("len(ret) != c. len: %d, c: %d, i: %d, j: %d", len(ret), c, i, j)
+					t.Fatalf("len(ret) != c. len: %d, c: %d, i: %d, step: %d", len(ret), c, i, step)
 				}
-				invariant(dq3, t)
+				invariant(t, dq3)
 				start := i - remaining
-				compareBufs(nil, ret, expected[start:start+c], fmt.Sprintf("i: %d, j: %d", i, j), t)
+				checkBufs(nil, ret, expected[start:start+c], fmt.Sprintf("i: %d, step: %d", i, step), t)
 				remaining -= c
 			}
 			if dq3.DequeueMany(0) != nil {
@@ -544,7 +613,7 @@ func TestDeque_DequeueMany(t *testing.T) {
 	}
 }
 
-func compareBufs(bufA, bufB, expected []int, suffix string, t *testing.T) {
+func checkBufs(bufA, bufB, expected []int, suffix string, t *testing.T) {
 	t.Helper()
 	if len(bufB) != len(expected) {
 		t.Fatal(`len(bufB) != len(expected). ` + suffix)
@@ -577,7 +646,7 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 		if dq1.DequeueManyWithBuffer(i, nil) != nil {
 			t.Fatalf("dq1.DequeueManyWithBuffer(%d, nil) should return nil while dq1 is empty", i)
 		}
-		invariant(dq1, t)
+		invariant(t, dq1)
 	}
 
 	dq2 := NewDeque[int]()
@@ -587,44 +656,51 @@ func TestDeque_DequeueManyWithBuffer(t *testing.T) {
 			dq2.PushBack(j)
 			expected[j] = j
 		}
-		invariant(dq2, t)
+		invariant(t, dq2)
 		size := dq2.chunkSize * 2 / (i%3 + 1)
 		bufA := make([]int, size, size)
 		bufB := dq2.DequeueManyWithBuffer(0, bufA)
 		if len(bufB) != i {
 			t.Fatalf("dq2.DequeueManyWithBuffer(0, bufA) should return %d values", i)
 		}
-		invariant(dq2, t)
-		compareBufs(bufA, bufB, expected, fmt.Sprintf("i: %d", i), t)
+		invariant(t, dq2)
+		checkBufs(bufA, bufB, expected, fmt.Sprintf("i: %d", i), t)
 	}
 
-	for i := 0; i < 2000; i += 5 {
-		expected := make([]int, i)
-		for k := 0; k < i; k++ {
-			expected[k] = k
+	const total = 100
+	whole := make([]int, total)
+	for i := 0; i < total; i++ {
+		whole[i] = i
+	}
+
+	dq3 := NewDeque[int](WithChunkSize(16))
+	steps := []int{1, 2, 3, 5, 7, 8, 15, 16, 17, 31, 32, 33, 47, 48, 49}
+	for i := 0; i < total; i++ {
+		if dq3.Len() != 0 {
+			t.Fatal(`dq3.Len() != 0`)
 		}
-		for j := 5; j < 600; j += 25 {
-			dq3 := NewDeque[int]()
-			for k := 0; k < i; k++ {
-				dq3.PushBack(k)
+		expected := whole[:i]
+		for _, step := range steps {
+			for j := 0; j < i; j++ {
+				dq3.PushBack(j)
 			}
-			invariant(dq3, t)
+			invariant(t, dq3)
 			remaining := i
 			for remaining > 0 {
-				c := j
-				if remaining < j {
+				c := step
+				if remaining < step {
 					c = remaining
 				}
 				size := dq2.chunkSize * 2 / (i%3 + 1)
 				bufA := make([]int, size, size)
-				bufB := dq3.DequeueManyWithBuffer(j, bufA)
+				bufB := dq3.DequeueManyWithBuffer(step, bufA)
 				if len(bufB) != c {
-					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
+					t.Fatalf("len(bufB) != c. len: %d, c: %d, i: %d, step: %d", len(bufB), c, i, step)
 				}
-				invariant(dq3, t)
+				invariant(t, dq3)
 				start := i - remaining
-				str := fmt.Sprintf("len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, j)
-				compareBufs(bufA, bufB, expected[start:start+c], str, t)
+				str := fmt.Sprintf("len: %d, c: %d, i: %d, j: %d", len(bufB), c, i, step)
+				checkBufs(bufA, bufB, expected[start:start+c], str, t)
 				remaining -= c
 			}
 			if dq3.DequeueMany(0) != nil {
@@ -645,6 +721,15 @@ func TestDeque_Back(t *testing.T) {
 			t.Fatal("!ok || v != i")
 		}
 	}
+
+	var n2 int
+	dq.Range(func(i int, v int) bool {
+		n2++
+		return false
+	})
+	if n2 != 1 {
+		t.Fatal(`n2 != 1`)
+	}
 }
 
 func TestDeque_Front(t *testing.T) {
@@ -660,41 +745,10 @@ func TestDeque_Front(t *testing.T) {
 	}
 }
 
-func TestDeque_Random(t *testing.T) {
-	rand.Seed(time.Now().UnixNano())
-	dq := NewDeque[int]()
-	var n int
-	for i := 0; i < 100000; i++ {
-		invariant(dq, t)
-		switch rand.Int() % 4 {
-		case 0:
-			dq.PushBack(i)
-			n++
-		case 1:
-			dq.PushFront(i)
-			n++
-		case 2:
-			if _, ok := dq.TryPopBack(); ok {
-				n--
-			}
-		case 3:
-			if _, ok := dq.TryPopFront(); ok {
-				n--
-			}
-		}
-		if dq.Len() != n {
-			t.Fatal("dq.Len() != n")
-		}
-		if n == 0 != dq.IsEmpty() {
-			t.Fatal("n == 0 != dq.IsEmpty()")
-		}
-	}
-}
-
 func TestDeque_Dump(t *testing.T) {
 	rand.Seed(time.Now().UnixNano())
 	var a []int
-	dq := NewDeque[int]()
+	dq := NewDeque[int](WithChunkSize(16))
 	if dq.Dump() != nil {
 		t.Fatal(`dq.Dump() != nil`)
 	}
@@ -704,8 +758,8 @@ func TestDeque_Dump(t *testing.T) {
 		t.Fatal(`dq.Dump() != nil`)
 	}
 
-	for i := 0; i < 10000; i++ {
-		invariant(dq, t)
+	for i := 0; i < 5000; i++ {
+		invariant(t, dq)
 		switch rand.Int() % 5 {
 		case 0, 1:
 			dq.PushBack(i)
@@ -776,15 +830,6 @@ func TestDeque_Replace(t *testing.T) {
 			if n1 != dq.Len() {
 				t.Fatal(`n1 != dq.Len()`)
 			}
-
-			var n2 int
-			dq.Range(func(i int, v int) bool {
-				n2++
-				return false
-			})
-			if n2 != 1 {
-				t.Fatal(`n2 != 1`)
-			}
 		}
 
 		for _, idx := range []int{-1, dq.Len()} {
@@ -795,6 +840,554 @@ func TestDeque_Replace(t *testing.T) {
 				dq.Replace(idx, 999)
 				t.Fatal("Replace should panic")
 			}()
+		}
+	}
+}
+
+func TestDeque_Swap(t *testing.T) {
+	chunkSize := NewDeque[int]().chunkSize
+	for _, n := range []int{1, 100, chunkSize, chunkSize + 1, chunkSize * 2, 1000} {
+		a := make([]int, n)
+		dq := NewDeque[int]()
+		for i := 0; i < n; i++ {
+			v := rand.Int()
+			a[i] = v
+			dq.PushBack(v)
+		}
+		for i := 0; i < 100; i++ {
+			idx1 := rand.Intn(n)
+			if dq.Peek(idx1) != a[idx1] {
+				t.Fatal("dq.Peek(idx1) != a[idx1]")
+			}
+			idx2 := rand.Intn(n)
+			if dq.Peek(idx2) != a[idx2] {
+				t.Fatal("dq.Peek(idx2) != a[idx2]")
+			}
+
+			a[idx1], a[idx2] = a[idx2], a[idx1]
+			dq.Swap(idx1, idx2)
+
+			var n1 int
+			dq.Range(func(i int, v int) bool {
+				if a[i] != v {
+					t.Fatal("a[i] != v")
+				}
+				n1++
+				return true
+			})
+			if n1 != dq.Len() {
+				t.Fatal(`n1 != dq.Len()`)
+			}
+		}
+
+		for _, idx := range []int{-1, dq.Len()} {
+			func() {
+				defer func() {
+					_ = recover()
+				}()
+				dq.Swap(idx, 0)
+				t.Fatal("Swap should panic")
+			}()
+			func() {
+				defer func() {
+					_ = recover()
+				}()
+				dq.Swap(0, idx)
+				t.Fatal("Swap should panic")
+			}()
+		}
+	}
+}
+
+func checkValues(t *testing.T, dq *Deque[int], expected ...int) {
+	t.Helper()
+	a := dq.Dump()
+	for i, v := range a {
+		if v != expected[i] {
+			t.Fatal(`v != expected[i]`)
+		}
+	}
+}
+
+func TestDeque_Insert(t *testing.T) {
+	dq := NewDeque[int]()
+	dq.Insert(0, 100)
+	invariant(t, dq)
+	if v, ok := dq.Back(); !ok || v != 100 {
+		t.Fatal(`v, ok := dq.Back(); !ok || v != 100`)
+	}
+	if v, ok := dq.Front(); !ok || v != 100 {
+		t.Fatal(`v, ok := dq.Front(); !ok || v != 100`)
+	}
+
+	dq.Insert(-1, 99)
+	invariant(t, dq)
+	checkValues(t, dq, 99, 100)
+
+	dq.Insert(0, 98)
+	invariant(t, dq)
+	checkValues(t, dq, 98, 99, 100)
+
+	dq.Insert(3, 101)
+	invariant(t, dq)
+	checkValues(t, dq, 98, 99, 100, 101)
+
+	dq.Insert(3, 102)
+	invariant(t, dq)
+	checkValues(t, dq, 98, 99, 100, 102, 101)
+
+	expected := dq.Dump()
+	for i := 0; i < dq.chunkSize; i++ {
+		v := -1000 + i
+		dq.Insert(0, v)
+		invariant(t, dq)
+		expected = append([]int{v}, expected...)
+		checkValues(t, dq, expected...)
+	}
+	for i := 0; i < dq.chunkSize; i++ {
+		v := 1000 + i
+		dq.Insert(9999, v)
+		invariant(t, dq)
+		expected = append(expected, v)
+		checkValues(t, dq, expected...)
+	}
+	for i := 0; i < dq.chunkSize*3; i++ {
+		v := 3000 + i
+		where := dq.Len() / 2
+		dq.Insert(where, v)
+		invariant(t, dq)
+		expected = append(expected[:where], append([]int{v}, expected[where:]...)...)
+		checkValues(t, dq, expected...)
+	}
+}
+
+func freeSlots(dq *Deque[int], idx int, sFree, eFree int) {
+	c := dq.chunks[idx]
+	for i := 0; i < sFree; i++ {
+		c.data[i] = 0
+	}
+	for i := dq.chunkSize - eFree; i < dq.chunkSize; i++ {
+		c.data[i] = 0
+	}
+	dq.count -= sFree - c.s
+	dq.count -= eFree - (dq.chunkSize - c.e)
+	c.s = sFree
+	c.e = dq.chunkSize - eFree
+}
+
+func TestDeque_insertImpl(t *testing.T) {
+	dq := NewDeque[int]()
+	for i := 0; i < dq.chunkSize*3; i++ {
+		dq.PushBack(i)
+	}
+	if len(dq.chunks) != 3 {
+		t.Fatal(`len(dq.chunks) != 3`)
+	}
+	freeSlots(dq, 1, 10, 10)
+	invariant(t, dq)
+
+	dq.Insert(dq.chunkSize, 888)
+	if v := dq.Peek(dq.chunkSize); v != 888 {
+		t.Fatal(`v := dq.Peek(dq.chunkSize); v != 888`)
+	}
+	if dq.chunks[1].s != 9 {
+		t.Fatal(`dq.chunks[1].s != 9`)
+	}
+	if dq.chunks[1].e != dq.chunkSize-10 {
+		t.Fatal(dq.chunks[1].e != dq.chunkSize-10)
+	}
+	invariant(t, dq)
+
+	var idx int
+	idx = dq.Len() - dq.chunkSize - 1
+	dq.Insert(idx, 888)
+	if v := dq.Peek(idx); v != 888 {
+		t.Fatal(`v := dq.Peek(idx); v != 888`)
+	}
+	if dq.chunks[1].s != 9 {
+		t.Fatal(`dq.chunks[1].s != 9`)
+	}
+	if dq.chunks[1].e != dq.chunkSize-9 {
+		t.Fatal(`dq.chunks[1].e != dq.chunkSize-9`)
+	}
+	invariant(t, dq)
+
+	idx = dq.chunkSize - 1
+	dq.Insert(idx, 999)
+	if v := dq.Peek(idx); v != 999 {
+		t.Fatal(`v := dq.Peek(idx); v != 999`)
+	}
+	if dq.chunks[1].s != 8 {
+		t.Fatal(`dq.chunks[1].s != 8`)
+	}
+	if dq.chunks[1].e != dq.chunkSize-9 {
+		t.Fatal(`dq.chunks[1].e != dq.chunkSize-9`)
+	}
+	invariant(t, dq)
+
+	idx = dq.Len() - dq.chunkSize
+	dq.Insert(idx, 999)
+	if v := dq.Peek(idx); v != 999 {
+		t.Fatal(`v := dq.Peek(idx); v != 999`)
+	}
+	if dq.chunks[1].s != 8 {
+		t.Fatal(`dq.chunks[1].s != 8`)
+	}
+	if dq.chunks[1].e != dq.chunkSize-8 {
+		t.Fatal(`dq.chunks[1].e != dq.chunkSize-8`)
+	}
+	invariant(t, dq)
+
+	for i := 0; i < dq.chunkSize*2; i++ {
+		dq.PushFront(i)
+	}
+	invariant(t, dq)
+
+	dq.Insert(dq.chunkSize, 777)
+	if v := dq.Peek(dq.chunkSize); v != 777 {
+		t.Fatal(`v := dq.Peek(dq.chunkSize); v != 777`)
+	}
+	if dq.chunks[1].s != 0 || dq.chunks[1].e != 1 {
+		t.Fatal(`dq.chunks[1].s != 0 || dq.chunks[1].e != 1`)
+	}
+	invariant(t, dq)
+
+	dq.Insert(10, 666)
+	if v := dq.Peek(10); v != 666 {
+		t.Fatal(`v := dq.Peek(10); v != 666`)
+	}
+	if dq.chunks[0].s != 0 || dq.chunks[0].e != 10 {
+		t.Fatal(`dq.chunks[0].s != 0 || dq.chunks[0].e != 10`)
+	}
+	if dq.chunks[1].s != 9 {
+		t.Fatal(`dq.chunks[1].s != 9`)
+	}
+	invariant(t, dq)
+
+	for i := 0; i < dq.chunkSize*2; i++ {
+		dq.PushBack(i)
+	}
+	invariant(t, dq)
+
+	idx = dq.Len() - 10
+	dq.Insert(idx, 666)
+	if v := dq.Peek(idx); v != 666 {
+		t.Fatal(`v := dq.Peek(idx); v != 666`)
+	}
+	if dq.chunks[len(dq.chunks)-1].s != dq.chunkSize-10 {
+		t.Fatal(`dq.chunks[len(dq.chunks)-1].s != dq.chunkSize-10`)
+	}
+	if dq.chunks[len(dq.chunks)-1].e != dq.chunkSize {
+		t.Fatal(`dq.chunks[len(dq.chunks)-1].e != dq.chunkSize`)
+	}
+	if dq.chunks[len(dq.chunks)-2].e != dq.chunkSize-9 {
+		t.Fatal(`dq.chunks[len(dq.chunks)-2].e != dq.chunkSize-9`)
+	}
+	invariant(t, dq)
+}
+
+func TestDeque_insertNewChunk(t *testing.T) {
+	dq := NewDeque[int]()
+	for i := 0; i < dq.chunkSize*3; i++ {
+		dq.PushBack(i)
+	}
+
+	dq.chunkPitch = dq.chunkPitch[dq.sFree : dq.sFree+len(dq.chunks)]
+	dq.sFree, dq.eFree = 0, 0
+	invariant(t, dq)
+
+	dq.insertNewChunk(0, true)
+	invariant(t, dq)
+
+	dq.chunkPitch = dq.chunkPitch[dq.sFree : dq.sFree+len(dq.chunks)]
+	dq.sFree, dq.eFree = 0, 0
+
+	dq.insertNewChunk(len(dq.chunks)-1, false)
+	invariant(t, dq)
+}
+
+func TestDeque_Remove(t *testing.T) {
+	dq := NewDeque[int]()
+	var a []int
+	for i := 0; i < dq.chunkSize*3; i++ {
+		dq.PushBack(i)
+		a = append(a, i)
+	}
+
+	for _, idx := range []int{-1, dq.Len()} {
+		func() {
+			defer func() {
+				_ = recover()
+			}()
+			dq.Remove(idx)
+			t.Fatal("Remove should panic")
+		}()
+	}
+
+	for i := 0; i < dq.chunkSize; i++ {
+		idx := dq.chunkSize + (dq.chunkSize-i)/2
+		dq.Remove(idx)
+		a = append(a[:idx], a[idx+1:]...)
+	}
+	if len(dq.chunks) != 2 {
+		t.Fatal(`len(dq.chunks) != 2`)
+	}
+	invariant(t, dq)
+	checkValues(t, dq, a...)
+
+	for i := 0; i < dq.chunkSize; i++ {
+		idx := (dq.chunkSize - i) / 2
+		dq.Remove(idx)
+		a = append(a[:idx], a[idx+1:]...)
+	}
+	if len(dq.chunks) != 1 {
+		t.Fatal(`len(dq.chunks) != 1`)
+	}
+	invariant(t, dq)
+	checkValues(t, dq, a...)
+
+	for i := 0; i < 10; i++ {
+		idx := dq.chunkSize - i - 1
+		dq.Remove(idx)
+		a = append(a[:idx], a[idx+1:]...)
+		if dq.chunks[0].s != 0 || dq.chunks[0].e != idx {
+			t.Fatal(`dq.chunks[0].s != 0 || dq.chunks[0].e != idx`)
+		}
+	}
+	invariant(t, dq)
+	checkValues(t, dq, a...)
+
+	n := dq.Len()
+	for i := 0; i < n; i++ {
+		dq.Remove(0)
+	}
+	if len(dq.chunks) != 0 {
+		t.Fatal(`len(dq.chunks) != 0`)
+	}
+	invariant(t, dq)
+
+	var idx int
+	for i := 0; i < dq.chunkSize; i++ {
+		dq.PushBack(i)
+	}
+	idx = dq.chunkSize / 2
+	dq.Insert(idx, 999)
+	dq.Remove(idx)
+	if len(dq.chunks) != 2 {
+		t.Fatal(`len(dq.chunks) != 2`)
+	}
+	if dq.chunks[0].e != dq.chunks[1].s {
+		t.Fatal(`dq.chunks[0].e != dq.chunks[1].s`)
+	}
+	for i := 0; i < dq.chunkSize/4-1; i++ {
+		dq.Remove(idx)
+	}
+	if len(dq.chunks) != 2 {
+		t.Fatal(`len(dq.chunks) != 2`)
+	}
+	dq.Remove(idx)
+	if len(dq.chunks) != 1 {
+		t.Fatal(`len(dq.chunks) != 1`)
+	}
+	if dq.chunks[0].s != dq.chunkSize/4 {
+		t.Fatal(`dq.chunks[0].s != dq.chunkSize/4`)
+	}
+	invariant(t, dq)
+
+	dq.Clear()
+	invariant(t, dq)
+
+	for i := 0; i < dq.chunkSize*3/2; i++ {
+		dq.PushBack(i)
+	}
+	idx = dq.chunkSize / 2
+	for i := 0; i < dq.chunkSize/2; i++ {
+		dq.Remove(idx)
+	}
+	if len(dq.chunks) != 2 {
+		t.Fatal(`len(dq.chunks) != 2`)
+	}
+	if dq.chunks[0].e != dq.chunkSize/2 {
+		t.Fatal(`dq.chunks[0].e != dq.chunkSize/2`)
+	}
+	idx = dq.chunkSize / 4
+	for i := 0; i < dq.chunkSize/4-1; i++ {
+		dq.Remove(idx)
+	}
+	if len(dq.chunks) != 2 {
+		t.Fatal(`len(dq.chunks) != 2`)
+	}
+	dq.Remove(idx)
+	if len(dq.chunks) != 1 {
+		t.Fatal(`len(dq.chunks) != 1`)
+	}
+	if dq.chunks[0].e != dq.chunkSize*3/4 {
+		t.Fatal(`dq.chunks[0].e != dq.chunkSize*3/4`)
+	}
+	invariant(t, dq)
+
+	for i := 0; i < 1000; i++ {
+		dq.PushFront(i)
+	}
+	dq.Clear()
+	invariant(t, dq)
+	dq.Clear()
+	invariant(t, dq)
+}
+
+func TestDeque_Random(t *testing.T) {
+	cfg1 := map[string]int{
+		"Clear":       1,
+		"Dequeue":     100,
+		"DequeueMany": 10,
+		"Enqueue":     300,
+		"Insert":      300,
+		"PopBack":     100,
+		"PopFront":    100,
+		"PushBack":    300,
+		"PushFront":   300,
+		"Remove":      100,
+		"Replace":     10,
+		"Swap":        10,
+		"TryDequeue":  100,
+		"TryPopBack":  100,
+		"TryPopFront": 100,
+	}
+
+	var keys []string
+	for k := range cfg1 {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	cfg2 := make(map[int]string)
+	var sum int
+	for _, k := range keys {
+		tmp := sum
+		sum += cfg1[k]
+		for i := tmp; i < sum; i++ {
+			cfg2[i] = k
+		}
+	}
+
+	const total = 1000000
+	seed := time.Now().UnixMilli()
+	t.Logf("seed: %d", seed)
+	r := rand.New(rand.NewSource(seed))
+	dq := NewDeque[int](WithChunkSize(8))
+	var a []int
+	var i int
+
+	checkValues := func() {
+		t.Helper()
+		if dq.Len() != len(a) {
+			t.Fatal(`dq.Len() != len(a)`)
+		}
+		var idx int
+		for _, c := range dq.chunks {
+			for j := c.s; j < c.e; j++ {
+				if c.data[j] != a[idx] {
+					t.Fatalf(`c.data[j] != a[idx]. i: %d`, i)
+				}
+				idx++
+			}
+		}
+	}
+
+	for i = 1; i <= total; i++ {
+		action := cfg2[r.Intn(sum)]
+		switch action {
+		case "Clear":
+			dq.Clear()
+			a = nil
+		case "Dequeue":
+			if len(a) > 0 {
+				dq.Dequeue()
+				a = a[1:]
+			}
+		case "DequeueMany":
+			count := r.Intn(20) + 1
+			dq.DequeueMany(count)
+			if len(a) > count {
+				a = a[count:]
+			} else {
+				a = a[:0]
+			}
+		case "Enqueue":
+			dq.Enqueue(i)
+			a = append(a, i)
+		case "Insert":
+			var idx int
+			if len(a) > 0 {
+				idx = r.Intn(len(a))
+			}
+			dq.Insert(idx, i)
+			a = append(a, 0)
+			copy(a[idx+1:], a[idx:len(a)-1])
+			a[idx] = i
+		case "PopBack":
+			if len(a) > 0 {
+				dq.PopBack()
+				a = a[:len(a)-1]
+			}
+		case "PopFront":
+			if len(a) > 0 {
+				dq.PopFront()
+				a = a[1:]
+			}
+		case "PushBack":
+			dq.PushBack(i)
+			a = append(a, i)
+		case "PushFront":
+			dq.PushFront(i)
+			a = append(a, i)
+			copy(a[1:], a[:len(a)-1])
+			a[0] = i
+		case "Remove":
+			if len(a) > 0 {
+				idx := r.Intn(len(a))
+				dq.Remove(idx)
+				a = append(a[:idx], a[idx+1:]...)
+			}
+		case "Replace":
+			if len(a) > 0 {
+				idx := r.Intn(len(a))
+				dq.Replace(idx, i)
+				a[idx] = i
+			}
+		case "Swap":
+			if len(a) > 0 {
+				idx1 := r.Intn(len(a))
+				idx2 := r.Intn(len(a))
+				dq.Swap(idx1, idx2)
+				a[idx1], a[idx2] = a[idx2], a[idx1]
+			}
+		case "TryDequeue":
+			dq.TryDequeue()
+			if len(a) > 0 {
+				a = a[1:]
+			}
+		case "TryPopBack":
+			dq.TryPopBack()
+			if len(a) > 0 {
+				a = a[:len(a)-1]
+			}
+		case "TryPopFront":
+			dq.TryPopFront()
+			if len(a) > 0 {
+				a = a[1:]
+			}
+		default:
+			panic("impossible")
+		}
+
+		checkValues()
+		invariant(t, dq, skipChunkMerge())
+
+		if testing.Verbose() {
+			if i%10000 == 0 {
+				fmt.Printf("Progress: %d\n", i)
+			}
 		}
 	}
 }

@@ -515,6 +515,10 @@ func TestDeque_Dump(t *testing.T) {
 	}
 }
 
+func rec() {
+	_ = recover()
+}
+
 func TestDeque_Replace(t *testing.T) {
 	for _, n := range []int{1, 100, chunkSize, chunkSize + 1, chunkSize * 2, 1000} {
 		a := make([]int, n)
@@ -524,7 +528,29 @@ func TestDeque_Replace(t *testing.T) {
 			a[i] = v
 			dq.PushBack(v)
 		}
-		for i := 0; i < 100; i++ {
+
+		func() {
+			defer rec()
+			dq.Peek(-1)
+			t.Fatal("impossible")
+		}()
+		func() {
+			defer rec()
+			dq.Peek(n + 10)
+			t.Fatal("impossible")
+		}()
+		func() {
+			defer rec()
+			dq.Replace(-1, math.MaxInt)
+			t.Fatal("impossible")
+		}()
+		func() {
+			defer rec()
+			dq.Replace(n+10, math.MaxInt)
+			t.Fatal("impossible")
+		}()
+
+		for i := 0; i < 2000; i++ {
 			idx := rand.Intn(n)
 			if dq.Peek(idx).(int) != a[idx] {
 				t.Fatal("dq.Peek(idx).(int) != a[idx]")
@@ -541,5 +567,36 @@ func TestDeque_Replace(t *testing.T) {
 				return true
 			})
 		}
+	}
+}
+
+func TestDeque_Range(t *testing.T) {
+	dq := NewDeque()
+	dq.Range(func(i int, v Elem) bool {
+		panic("impossible")
+	})
+
+	for i := 0; i < 10; i++ {
+		dq.PushFront(1)
+	}
+	for i := 0; i < 10; i++ {
+		dq.PushBack(i)
+	}
+
+	if len(dq.(*deque).chunks) != 2 {
+		t.Fatal(`len(dq.(*deque).chunks) != 2`)
+	}
+
+	var count int
+	dq.Range(func(i int, v Elem) bool {
+		if i < 15 {
+			count++
+			return true
+		} else {
+			return false
+		}
+	})
+	if count != 15 {
+		t.Fatal(`count != 15`, count)
 	}
 }
