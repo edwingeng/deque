@@ -412,7 +412,7 @@ func (dq *Deque[T]) Dump() []T {
 	return vals
 }
 
-// Range iterates all the values in dq. Do NOT add or remove elements during Range.
+// Range iterates all the values in dq. Do NOT add values to dq or remove values from dq during Range.
 func (dq *Deque[T]) Range(f func(i int, v T) bool) {
 	var i int
 	for _, c := range dq.chunks {
@@ -501,7 +501,7 @@ func (dq *Deque[T]) Swap(idx1, idx2 int) {
 // Insert inserts a new value v before the value at idx.
 //
 // Insert may cause the split of a chunk inside dq. Because the size of a chunk is fixed,
-// the amount of time taken by Insert does not grow with the length of dq.
+// the amount of time taken by Insert has a reasonable limit.
 func (dq *Deque[T]) Insert(idx int, v T) {
 	if idx <= 0 {
 		dq.PushFront(v)
@@ -743,6 +743,7 @@ func (dq *Deque[T]) mergeChunks(j int) {
 	}
 }
 
+// Clear removes all the values from dq.
 func (dq *Deque[T]) Clear() {
 	var defVal T
 	for _, c := range dq.chunks {

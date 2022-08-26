@@ -81,12 +81,6 @@ func (dq *Deque[T]) Front() (_ T, ok bool)
     Front returns the first value of dq if any. The return value ok indicates
     whether it succeeded.
 
-func (dq *Deque[T]) IsEmpty() bool
-    IsEmpty returns whether dq is empty.
-
-func (dq *Deque[T]) Len() int
-    Len returns the number of values in dq.
-
 func (dq *Deque[T]) Enqueue(v T)
     Enqueue is an alias of PushBack.
 
@@ -106,14 +100,37 @@ func (dq *Deque[T]) DequeueManyWithBuffer(max int, buf []T) []T
     DequeueManyWithBuffer is similar to DequeueMany except that it uses buf to
     store the removed values as long as it has enough space.
 
+func (dq *Deque[T]) Insert(idx int, v T)
+    Insert inserts a new value v before the value at idx.
+
+    Insert may cause the split of a chunk inside dq. Because the size of a chunk
+    is fixed, the amount of time taken by Insert has a reasonable limit.
+
+func (dq *Deque[T]) Remove(idx int)
+    Remove removes the value at idx. It panics if idx is out of range.
+
+func (dq *Deque[T]) Replace(idx int, v T)
+    Replace replaces the value at idx with v. It panics if idx is out of range.
+
+func (dq *Deque[T]) Swap(idx1, idx2 int)
+    Swap exchanges the two values at idx1 and idx2. It panics if idx1 or idx2 is
+    out of range.
+
+func (dq *Deque[T]) Clear()
+    Clear removes all the values from dq.
+
+func (dq *Deque[T]) IsEmpty() bool
+    IsEmpty returns whether dq is empty.
+
+func (dq *Deque[T]) Len() int
+    Len returns the number of values in dq.
+
 func (dq *Deque[T]) Range(f func(i int, v T) bool)
-    Range iterates all the values in dq.
+    Range iterates all the values in dq. Do NOT add values to dq or remove
+    values from dq during Range.
 
 func (dq *Deque[T]) Peek(idx int) T
     Peek returns the value at idx. It panics if idx is out of range.
-
-func (dq *Deque[T]) Replace(idx int, v T)
-    Replace replaces the value at idx. It panics if idx is out of range.
 
 func (dq *Deque[T]) Dump() []T
     Dump returns all the values in dq.
