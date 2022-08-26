@@ -404,6 +404,7 @@ func TestDeque_shrinkStart(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestDeque_PushBack(t *testing.T) {
 	dq := NewDeque[int]()
 	total := dq.chunkSize * 10
@@ -449,6 +450,7 @@ func TestDeque_PushBack(t *testing.T) {
 	}
 }
 
+//gocyclo:ignore
 func TestDeque_PushFront(t *testing.T) {
 	dq := NewDeque[int]()
 	total := dq.chunkSize * 10
@@ -975,6 +977,7 @@ func freeSlots(dq *Deque[int], idx int, sFree, eFree int) {
 	c.e = dq.chunkSize - eFree
 }
 
+//gocyclo:ignore
 func TestDeque_insertImpl(t *testing.T) {
 	dq := NewDeque[int]()
 	for i := 0; i < dq.chunkSize*3; i++ {
@@ -1106,6 +1109,7 @@ func TestDeque_insertNewChunk(t *testing.T) {
 	invariant(t, dq)
 }
 
+//gocyclo:ignore
 func TestDeque_Remove(t *testing.T) {
 	dq := NewDeque[int]()
 	var a []int
@@ -1235,6 +1239,7 @@ func TestDeque_Remove(t *testing.T) {
 	invariant(t, dq)
 }
 
+//gocyclo:ignore
 func TestDeque_Random(t *testing.T) {
 	cfg1 := map[string]int{
 		"Clear":       1,

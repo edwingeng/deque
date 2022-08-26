@@ -763,7 +763,7 @@ func (dq *Deque[T]) Clear() {
 	dq.eFree = len(dq.chunkPitch) - dq.sFree
 }
 
-// Option represents the option of the Deque.
+// Option represents the option of Deque.
 type Option func(*optionHolder)
 
 // WithChunkSize sets the chunk size of a Deque.
