@@ -24,12 +24,6 @@ type chunk[T any] struct {
 	data []T
 }
 
-func newChunk[T any](size int) *chunk[T] {
-	return &chunk[T]{
-		data: make([]T, size, size),
-	}
-}
-
 func (c *chunk[T]) back() (T, bool) {
 	if c.e > c.s {
 		return c.data[c.e-1], true
@@ -93,7 +87,9 @@ func NewDeque[T any](opts ...Option) *Deque[T] {
 	dq.chunkSize = holder.chunkSize
 	dq.chunkPool = sync.Pool{
 		New: func() any {
-			return newChunk[T](dq.chunkSize)
+			return &chunk[T]{
+				data: make([]T, dq.chunkSize, dq.chunkSize),
+			}
 		},
 	}
 

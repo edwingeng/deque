@@ -30,12 +30,11 @@ func (c *chunk) front() Elem {
 }
 
 type deque struct {
-	chunks   []*chunk
-	ptrPitch []*chunk
-	sFree    int
-	eFree    int
+	chunks []*chunk
 
-	chunkPool *chunkPool
+	chunkPitch []*chunk
+	sFree      int
+	eFree      int
 }
 
 var (
@@ -47,84 +46,83 @@ var (
 // NewDeque creates a new Deque instance.
 func NewDeque() Deque {
 	dq := &deque{
-		ptrPitch:  make([]*chunk, 64),
-		sFree:     32,
-		eFree:     32,
-		chunkPool: sharedChunkPool,
+		chunkPitch: make([]*chunk, 64),
+		sFree:      32,
+		eFree:      32,
 	}
 	return dq
 }
 
 func (dq *deque) balance() {
-	var pitchLen = len(dq.ptrPitch)
+	var pitchLen = len(dq.chunkPitch)
 	n := len(dq.chunks)
 	dq.sFree = pitchLen/2 - n/2
 	dq.eFree = pitchLen - dq.sFree - n
-	newChunks := dq.ptrPitch[dq.sFree : dq.sFree+n]
+	newChunks := dq.chunkPitch[dq.sFree : dq.sFree+n]
 	copy(newChunks, dq.chunks)
 	dq.chunks = newChunks
 	for i := 0; i < dq.sFree; i++ {
-		dq.ptrPitch[i] = nil
+		dq.chunkPitch[i] = nil
 	}
 	for i := pitchLen - dq.eFree; i < pitchLen; i++ {
-		dq.ptrPitch[i] = nil
+		dq.chunkPitch[i] = nil
 	}
 }
 
 func (dq *deque) realloc() {
-	if len(dq.chunks) < len(dq.ptrPitch)/2 {
+	if len(dq.chunks) < len(dq.chunkPitch)/2 {
 		dq.balance()
 		return
 	}
 
-	newPitchLen := len(dq.ptrPitch) * 2
-	newPitch := make([]*chunk, newPitchLen)
+	newLen := len(dq.chunkPitch) * 2
+	newPitch := make([]*chunk, newLen)
 	n := len(dq.chunks)
-	dq.sFree = newPitchLen/2 - n/2
-	dq.eFree = newPitchLen - dq.sFree - n
+	dq.sFree = newLen/2 - n/2
+	dq.eFree = newLen - dq.sFree - n
 	newChunks := newPitch[dq.sFree : dq.sFree+n]
 	for i := 0; i < n; i++ {
 		newChunks[i] = dq.chunks[i]
 	}
-	dq.ptrPitch = newPitch
+	dq.chunkPitch = newPitch
 	dq.chunks = newChunks
 }
 
 func (dq *deque) expandEnd() {
-	if dq.eFree == 0 {
+	if f := dq.eFree; f == 0 {
 		dq.realloc()
 	}
-	c := dq.chunkPool.Get().(*chunk)
+	c := sharedChunkPool.Get().(*chunk)
 	c.s, c.e = 0, 0
 	dq.eFree--
-	newEnd := len(dq.ptrPitch) - dq.eFree
-	dq.ptrPitch[newEnd-1] = c
-	dq.chunks = dq.ptrPitch[dq.sFree:newEnd]
+	newEnd := len(dq.chunkPitch) - dq.eFree
+	dq.chunkPitch[newEnd-1] = c
+	dq.chunks = dq.chunkPitch[dq.sFree:newEnd]
 }
 
 func (dq *deque) expandStart() {
-	if dq.sFree == 0 {
+	if f := dq.sFree; f == 0 {
 		dq.realloc()
 	}
-	c := dq.chunkPool.Get().(*chunk)
+	c := sharedChunkPool.Get().(*chunk)
 	c.s, c.e = chunkSize, chunkSize
 	dq.sFree--
-	dq.ptrPitch[dq.sFree] = c
-	newEnd := len(dq.ptrPitch) - dq.eFree
-	dq.chunks = dq.ptrPitch[dq.sFree:newEnd]
+	dq.chunkPitch[dq.sFree] = c
+	newEnd := len(dq.chunkPitch) - dq.eFree
+	dq.chunks = dq.chunkPitch[dq.sFree:newEnd]
 }
 
 func (dq *deque) shrinkEnd() {
-	n := len(dq.ptrPitch)
+	n := len(dq.chunkPitch)
 	if dq.sFree+dq.eFree == n {
 		return
 	}
 	newEnd := n - dq.eFree - 1
-	c := dq.ptrPitch[newEnd]
-	dq.ptrPitch[newEnd] = nil
-	dq.chunkPool.Put(c)
+	c := dq.chunkPitch[newEnd]
+	dq.chunkPitch[newEnd] = nil
+	sharedChunkPool.Put(c)
 	dq.eFree++
-	dq.chunks = dq.ptrPitch[dq.sFree:newEnd]
+	dq.chunks = dq.chunkPitch[dq.sFree:newEnd]
 	if dq.sFree+dq.eFree < n {
 		return
 	}
@@ -133,16 +131,16 @@ func (dq *deque) shrinkEnd() {
 }
 
 func (dq *deque) shrinkStart() {
-	n := len(dq.ptrPitch)
+	n := len(dq.chunkPitch)
 	if dq.sFree+dq.eFree == n {
 		return
 	}
-	c := dq.ptrPitch[dq.sFree]
-	dq.ptrPitch[dq.sFree] = nil
-	dq.chunkPool.Put(c)
+	c := dq.chunkPitch[dq.sFree]
+	dq.chunkPitch[dq.sFree] = nil
+	sharedChunkPool.Put(c)
 	dq.sFree++
-	curEnd := len(dq.ptrPitch) - dq.eFree
-	dq.chunks = dq.ptrPitch[dq.sFree:curEnd]
+	curEnd := len(dq.chunkPitch) - dq.eFree
+	dq.chunks = dq.chunkPitch[dq.sFree:curEnd]
 	if dq.sFree+dq.eFree < n {
 		return
 	}

@@ -13,14 +13,14 @@ import (
 func invariant(dq Deque, t *testing.T) {
 	t.Helper()
 	dq1 := dq.(*deque)
-	if dq1.sFree < 0 || dq1.sFree > len(dq1.ptrPitch) {
-		t.Fatal("dq1.sFree < 0 || dq1.sFree > len(dq1.ptrPitch)")
+	if dq1.sFree < 0 || dq1.sFree > len(dq1.chunkPitch) {
+		t.Fatal("dq1.sFree < 0 || dq1.sFree > len(dq1.chunkPitch)")
 	}
-	if dq1.eFree < 0 || dq1.eFree > len(dq1.ptrPitch) {
-		t.Fatal("dq1.eFree < 0 || dq1.eFree > len(dq1.ptrPitch)")
+	if dq1.eFree < 0 || dq1.eFree > len(dq1.chunkPitch) {
+		t.Fatal("dq1.eFree < 0 || dq1.eFree > len(dq1.chunkPitch)")
 	}
-	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.ptrPitch) {
-		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.ptrPitch)")
+	if dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.chunkPitch) {
+		t.Fatal("dq1.sFree+dq1.eFree+len(dq1.chunks) != len(dq1.chunkPitch)")
 	}
 	if n := dq1.Len(); n <= chunkSize {
 		if len(dq1.chunks) > 2 {
@@ -94,8 +94,8 @@ func TestDeque_realloc(t *testing.T) {
 			dq.realloc()
 			invariant(dq, t)
 			const n = 64
-			if len(dq.ptrPitch) != n {
-				t.Fatal("len(dq.ptrPitch) != n")
+			if len(dq.chunkPitch) != n {
+				t.Fatal("len(dq.chunkPitch) != n")
 			}
 			if len(dq.chunks) != numChunks {
 				t.Fatal("len(dq.chunks) != numChunks")
@@ -121,8 +121,8 @@ func TestDeque_realloc(t *testing.T) {
 	dq.PushBack(1)
 	invariant(dq, t)
 	const n = 128
-	if len(dq.ptrPitch) != n {
-		t.Fatal("len(dq.ptrPitch) != n")
+	if len(dq.chunkPitch) != n {
+		t.Fatal("len(dq.chunkPitch) != n")
 	}
 }
 
@@ -172,8 +172,8 @@ func TestDeque_expandStart(t *testing.T) {
 
 func TestDeque_shrinkEnd(t *testing.T) {
 	dq := NewDeque().(*deque)
-	for i := 0; i < len(dq.ptrPitch); i++ {
-		dq.ptrPitch[i] = &chunk{}
+	for i := 0; i < len(dq.chunkPitch); i++ {
+		dq.chunkPitch[i] = &chunk{}
 	}
 	dq.eFree -= 10
 	sf := dq.sFree
@@ -191,22 +191,22 @@ func TestDeque_shrinkEnd(t *testing.T) {
 	}
 	b := 0
 	idx := 0
-	for i := 0; i < len(dq.ptrPitch); i++ {
-		if dq.ptrPitch[i] != nil {
+	for i := 0; i < len(dq.chunkPitch); i++ {
+		if dq.chunkPitch[i] != nil {
 			b++
 		} else {
 			idx = i
 		}
 	}
-	if b != len(dq.ptrPitch)-1 {
-		t.Fatal("b != len(dq.ptrPitch)-1")
+	if b != len(dq.chunkPitch)-1 {
+		t.Fatal("b != len(dq.chunkPitch)-1")
 	}
-	if idx != len(dq.ptrPitch)-ef-1 {
-		t.Fatal("idx != len(dq.ptrPitch)-ef-1")
+	if idx != len(dq.chunkPitch)-ef-1 {
+		t.Fatal("idx != len(dq.chunkPitch)-ef-1")
 	}
 
 	dq.sFree = 60
-	dq.eFree = len(dq.ptrPitch) - dq.sFree - 1
+	dq.eFree = len(dq.chunkPitch) - dq.sFree - 1
 	dq.shrinkEnd()
 	invariant(dq, t)
 	if dq.sFree != 32 {
@@ -219,8 +219,8 @@ func TestDeque_shrinkEnd(t *testing.T) {
 
 func TestDeque_shrinkStart(t *testing.T) {
 	dq := NewDeque().(*deque)
-	for i := 0; i < len(dq.ptrPitch); i++ {
-		dq.ptrPitch[i] = &chunk{}
+	for i := 0; i < len(dq.chunkPitch); i++ {
+		dq.chunkPitch[i] = &chunk{}
 	}
 	dq.eFree -= 10
 	sf := dq.sFree
@@ -238,22 +238,22 @@ func TestDeque_shrinkStart(t *testing.T) {
 	}
 	b := 0
 	idx := 0
-	for i := 0; i < len(dq.ptrPitch); i++ {
-		if dq.ptrPitch[i] != nil {
+	for i := 0; i < len(dq.chunkPitch); i++ {
+		if dq.chunkPitch[i] != nil {
 			b++
 		} else {
 			idx = i
 		}
 	}
-	if b != len(dq.ptrPitch)-1 {
-		t.Fatal("b != len(dq.ptrPitch)-1")
+	if b != len(dq.chunkPitch)-1 {
+		t.Fatal("b != len(dq.chunkPitch)-1")
 	}
 	if idx != sf {
 		t.Fatal("idx != sf")
 	}
 
 	dq.sFree = 60
-	dq.eFree = len(dq.ptrPitch) - dq.sFree - 1
+	dq.eFree = len(dq.chunkPitch) - dq.sFree - 1
 	dq.shrinkEnd()
 	invariant(dq, t)
 	if dq.sFree != 32 {
