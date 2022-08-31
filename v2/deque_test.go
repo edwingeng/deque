@@ -216,6 +216,7 @@ func TestChunk(t *testing.T) {
 	invariant(t, dq1)
 }
 
+//gocyclo:ignore
 func TestDeque_realloc(t *testing.T) {
 	dq1 := NewDeque[int]()
 	dq1.PushBack(1)
