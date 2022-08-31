@@ -55,7 +55,28 @@ func NewDeque() Deque {
 	return dq
 }
 
+func (dq *deque) balance() {
+	var pitchLen = len(dq.ptrPitch)
+	n := len(dq.chunks)
+	dq.sFree = pitchLen/2 - n/2
+	dq.eFree = pitchLen - dq.sFree - n
+	newChunks := dq.ptrPitch[dq.sFree : dq.sFree+n]
+	copy(newChunks, dq.chunks)
+	dq.chunks = newChunks
+	for i := 0; i < dq.sFree; i++ {
+		dq.ptrPitch[i] = nil
+	}
+	for i := pitchLen - dq.eFree; i < pitchLen; i++ {
+		dq.ptrPitch[i] = nil
+	}
+}
+
 func (dq *deque) realloc() {
+	if len(dq.chunks) < len(dq.ptrPitch)/2 {
+		dq.balance()
+		return
+	}
+
 	newPitchLen := len(dq.ptrPitch) * 2
 	newPitch := make([]*chunk, newPitchLen)
 	n := len(dq.chunks)

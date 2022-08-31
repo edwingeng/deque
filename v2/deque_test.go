@@ -254,6 +254,24 @@ func TestDeque_realloc(t *testing.T) {
 			t.Fatal(`dq2.sFree != (pitchLen-(len(dq2.chunks)-1))/2-1`)
 		}
 	}
+
+	dq3 := NewDeque[int]()
+	for i := 0; i < dq3.chunkSize*3; i++ {
+		dq3.PushBack(i)
+	}
+	if dq3.sFree != 32 {
+		t.Fatal(`dq3.sFree != 32`)
+	}
+	if dq3.eFree != 29 {
+		t.Fatal(`dq3.eFree != 29`)
+	}
+	dq3.realloc()
+	if dq3.sFree != 31 {
+		t.Fatal(`dq3.sFree != 31`)
+	}
+	if dq3.eFree != 30 {
+		t.Fatal(`dq3.eFree != 30`)
+	}
 }
 
 func TestDeque_expandEnd(t *testing.T) {

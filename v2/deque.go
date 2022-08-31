@@ -100,7 +100,28 @@ func NewDeque[T any](opts ...Option) *Deque[T] {
 	return dq
 }
 
+func (dq *Deque[T]) balance() {
+	var pitchLen = len(dq.chunkPitch)
+	n := len(dq.chunks)
+	dq.sFree = pitchLen/2 - n/2
+	dq.eFree = pitchLen - dq.sFree - n
+	newChunks := dq.chunkPitch[dq.sFree : dq.sFree+n]
+	copy(newChunks, dq.chunks)
+	dq.chunks = newChunks
+	for i := 0; i < dq.sFree; i++ {
+		dq.chunkPitch[i] = nil
+	}
+	for i := pitchLen - dq.eFree; i < pitchLen; i++ {
+		dq.chunkPitch[i] = nil
+	}
+}
+
 func (dq *Deque[T]) realloc() {
+	if len(dq.chunks) < len(dq.chunkPitch)/2 {
+		dq.balance()
+		return
+	}
+
 	newLen := len(dq.chunkPitch) * 2
 	newPitch := make([]*chunk[T], newLen, newLen)
 	n := len(dq.chunks)

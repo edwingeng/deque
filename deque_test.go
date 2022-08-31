@@ -81,7 +81,7 @@ func TestChunk(t *testing.T) {
 }
 
 func TestDeque_realloc(t *testing.T) {
-	for pushes := 0; pushes < chunkSize*5; pushes++ {
+	for pushes := 0; pushes < chunkSize*3; pushes++ {
 		dq := NewDeque().(*deque)
 		for i := 0; i < pushes; i++ {
 			dq.PushBack(i)
@@ -93,7 +93,7 @@ func TestDeque_realloc(t *testing.T) {
 		for i := 0; i < 3; i++ {
 			dq.realloc()
 			invariant(dq, t)
-			n := 64 * int(math.Pow(2, float64(i+1)))
+			const n = 64
 			if len(dq.ptrPitch) != n {
 				t.Fatal("len(dq.ptrPitch) != n")
 			}
@@ -107,6 +107,22 @@ func TestDeque_realloc(t *testing.T) {
 				t.Fatal("dq.eFree != n-dq.sFree-numChunks")
 			}
 		}
+	}
+
+	dq := NewDeque().(*deque)
+	for i := 0; i < 32; i++ {
+		dq.chunks = append(dq.chunks, &chunk{
+			e: chunkSize,
+		})
+	}
+	dq.eFree = 0
+	invariant(dq, t)
+
+	dq.PushBack(1)
+	invariant(dq, t)
+	const n = 128
+	if len(dq.ptrPitch) != n {
+		t.Fatal("len(dq.ptrPitch) != n")
 	}
 }
 
