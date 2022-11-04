@@ -2,7 +2,6 @@ package deque
 
 import (
 	"fmt"
-	"math"
 	"math/rand"
 	"reflect"
 	"testing"
@@ -557,12 +556,12 @@ func TestDeque_Replace(t *testing.T) {
 		}()
 		func() {
 			defer rec()
-			dq.Replace(-1, math.MaxInt)
+			dq.Replace(-1, 0x7FFFFFFFFFFFFFFF)
 			t.Fatal("impossible")
 		}()
 		func() {
 			defer rec()
-			dq.Replace(n+10, math.MaxInt)
+			dq.Replace(n+10, 0x7FFFFFFFFFFFFFFF)
 			t.Fatal("impossible")
 		}()
 
