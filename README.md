@@ -1,4 +1,4 @@
-**Please use [the generic version](v2), if you have golang 1.18 or above.**
+**Please use [v2](v2), the generic version, if you have golang 1.18 or above.**
 
 # Overview
 Deque is a highly optimized double-ended queue, which is
